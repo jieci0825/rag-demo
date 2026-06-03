@@ -1,0 +1,32 @@
+{
+  "name": "rag-demo-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@koa/router": "latest",
+    "dotenv": "latest",
+    "drizzle-orm": "latest",
+    "koa": "latest",
+    "koa-bodyparser": "latest",
+    "pg": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/koa": "latest",
+    "@types/koa-bodyparser": "latest",
+    "@types/koa__router": "latest",
+    "@types/node": "latest",
+    "@types/pg": "latest",
+    "drizzle-kit": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}
