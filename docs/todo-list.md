@@ -10,28 +10,28 @@
 
 ## P0：服务可运行底座
 
-- [ ] 补齐 `server.ts` 和 `app.ts`
-- [ ] 注册 Koa、body parser、基础路由
-- [ ] 实现 `GET /health`
-- [ ] 补齐统一错误处理
-- [ ] 补齐请求参数校验中间件
-- [ ] 补齐 request id 中间件
-- [ ] 确认 `pnpm build` 能通过
-- [ ] 确认 `pnpm dev` 能启动服务
+- [x] 补齐 `server.ts` 和 `app.ts`
+- [x] 注册 Koa、body parser、基础路由
+- [x] 实现 `GET /health`
+- [x] 补齐统一错误处理
+- [x] 补齐请求参数校验中间件
+- [x] 补齐 request id 中间件
+- [x] 确认 `pnpm build` 能通过
+- [x] 确认 `pnpm dev` 能启动服务
 
 目标：服务能启动，能返回健康检查，错误响应格式稳定。
 
 ## P1：数据库与 schema
 
-- [ ] 实现 Drizzle 数据库连接
-- [ ] 按 `docs/database-schema.md` 创建 `documents` 表
-- [ ] 按 `docs/database-schema.md` 创建 `document_chunks` 表
-- [ ] 按 `docs/database-schema.md` 创建 `query_logs` 表
-- [ ] 接入 `pgvector` 字段
-- [ ] 生成并验证 migration
-- [ ] 实现基础时间工具
-- [ ] 实现内容 hash 工具
-- [ ] 实现分页工具
+- [x] 实现 Drizzle 数据库连接
+- [x] 按 `docs/database-schema.md` 创建 `documents` 表
+- [x] 按 `docs/database-schema.md` 创建 `document_chunks` 表
+- [x] 按 `docs/database-schema.md` 创建 `query_logs` 表
+- [x] 接入 `pgvector` 字段
+- [x] 生成并验证 migration
+- [x] 实现基础时间工具
+- [x] 实现内容 hash 工具
+- [x] 实现分页工具
 
 目标：数据库表可迁移，服务端能读写文档、chunks、查询日志。
 
