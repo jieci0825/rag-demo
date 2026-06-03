@@ -7,6 +7,7 @@ const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'production']).default('development'),
     PORT: z.coerce.number().int().positive(),
     DATABASE_URL: z.string().url(),
+    OLLAMA_BASE_URL: z.string().url().default('http://localhost:11434'),
     EMBEDDING_MODEL: z.string().min(1),
     EMBEDDING_DIM: z.coerce.number().int().positive(),
     LLM_MODEL: z.string(),

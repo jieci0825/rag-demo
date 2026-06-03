@@ -37,15 +37,15 @@
 
 ## P2：文本文档索引闭环
 
-- [ ] 实现 `POST /api/documents/text`
-- [ ] 保存 document 初始状态为 `pending`
-- [ ] 实现文本 loader
-- [ ] 实现最小 chunker
-- [ ] 接入 embedding provider
-- [ ] 写入 document chunks
-- [ ] 索引成功后更新 document 为 `indexed`
-- [ ] 索引失败后更新 document 为 `failed`
-- [ ] 索引失败时记录错误信息
+- [x] 实现 `POST /api/documents/text`
+- [x] 保存 document 初始状态为 `pending`
+- [x] 实现文本 loader
+- [x] 实现最小 chunker
+- [x] 接入 embedding provider
+- [x] 写入 document chunks
+- [x] 索引成功后更新 document 为 `indexed`
+- [x] 索引失败后更新 document 为 `failed`
+- [x] 索引失败时记录错误信息
 
 目标：纯文本能导入，并能生成向量写入数据库。
 
