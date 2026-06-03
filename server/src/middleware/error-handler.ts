@@ -1,34 +1,40 @@
-import { ERROR_CODES, isAppError } from '../lib/errors.js'
+import { isKnownException } from '../lib/errors.js'
+import { env } from '../config/env.js'
 
 import type { Middleware } from 'koa'
 
+const INTERNAL_SERVER_ERROR_CODE = 500
+const isProduction = env.NODE_ENV === 'production'
+
+console.log('NODE_ENV:', env.NODE_ENV)
+
 /**
- * 将所有异常转换为稳定的 JSON 错误响应。
+ * 将成功、已知错误、未知错误统一转换为稳定的 JSON 响应。
  */
 export function errorHandler(): Middleware {
     return async (ctx, next) => {
         try {
             await next()
         } catch (error) {
-            if (isAppError(error)) {
+            if (isKnownException(error)) {
                 ctx.status = error.status
                 ctx.body = {
-                    error: {
-                        code: error.code,
-                        message: error.message,
-                        details: error.details ?? {},
-                    },
+                    errorCode: error.errorCode,
+                    message: error.message,
+                    data: error.data,
                 }
                 return
             }
 
+            if (!isProduction) {
+                console.log(error)
+            }
+
             ctx.status = 500
             ctx.body = {
-                error: {
-                    code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-                    message: 'Internal server error',
-                    details: {},
-                },
+                errorCode: INTERNAL_SERVER_ERROR_CODE,
+                message: 'Internal server error',
+                data: null,
             }
         }
     }

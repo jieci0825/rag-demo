@@ -4,6 +4,7 @@ import { z } from 'zod'
 config()
 
 const envSchema = z.object({
+    NODE_ENV: z.enum(['development', 'production']).default('development'),
     PORT: z.coerce.number().int().positive(),
     DATABASE_URL: z.string().url(),
     EMBEDDING_MODEL: z.string().min(1),

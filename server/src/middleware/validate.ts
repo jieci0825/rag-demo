@@ -1,4 +1,4 @@
-import { AppError, ERROR_CODES } from '../lib/errors.js'
+import { ValidationError } from '../lib/errors.js'
 
 import type { Middleware } from 'koa'
 import type { ZodType } from 'zod'
@@ -41,7 +41,7 @@ function parseRequestPart(schema: ZodType, value: unknown): unknown {
     const result = schema.safeParse(value)
 
     if (!result.success) {
-        throw new AppError(400, ERROR_CODES.VALIDATION_ERROR, 'Invalid request payload', result.error.flatten())
+        throw new ValidationError(result.error.flatten())
     }
 
     return result.data
