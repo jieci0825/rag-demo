@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uuid, vector } from 'drizzle-orm/pg-core'
+import { index, integer, jsonb, pgTable, serial, text, timestamp, vector } from 'drizzle-orm/pg-core'
 
 import { EMBEDDING_DIMENSIONS } from './constants.js'
 
@@ -6,7 +6,7 @@ export const queryLogs = pgTable(
     'query_logs',
     {
         /** 查询日志唯一标识，作为服务端查看历史查询的主键。 */
-        id: uuid('id').defaultRandom().primaryKey(),
+        id: serial('id').primaryKey(),
         /** 用户提交的原始查询文本。 */
         queryText: text('query_text').notNull(),
         /** 查询文本对应的 1024 维 embedding 向量，用于排查召回质量。 */

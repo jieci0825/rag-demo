@@ -10,8 +10,6 @@ import type { CreateTextDocumentBody } from './documents.schema.js'
 export async function createTextDocumentController(
     ctx: Context
 ): Promise<void> {
-    console.log('触发', 'createTextDocumentController')
-
     const body = ctx.state.validated.body as CreateTextDocumentBody
     const document = await createTextDocument(body)
 

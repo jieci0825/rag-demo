@@ -21,7 +21,7 @@ export async function createDocument(input: NewDocument): Promise<Document> {
  * 更新文档索引状态和相关时间、错误信息。
  */
 export async function updateDocumentIndexStatus(
-    documentId: string,
+    documentId: number,
     status: DocumentStatus,
     errorMessage: string | null = null,
 ): Promise<void> {

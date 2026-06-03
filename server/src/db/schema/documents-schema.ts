@@ -1,10 +1,10 @@
-import { index, jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
+import { index, jsonb, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 
 export const documents = pgTable(
     'documents',
     {
         /** 文档唯一标识，作为服务端读写文档的主键。 */
-        id: uuid('id').defaultRandom().primaryKey(),
+        id: serial('id').primaryKey(),
         /** 文档标题，用于列表展示和检索结果引用。 */
         title: text('title').notNull(),
         /** 文档来源类型，第一版用于区分 text、file、url 等输入来源。 */

@@ -6,7 +6,7 @@ import type { Document } from '../../db/schema.js'
 import type { CreateTextDocumentBody } from './documents.schema.js'
 
 export interface CreatedTextDocument {
-    id: string
+    id: number
     title: string
     sourceType: string
     status: string

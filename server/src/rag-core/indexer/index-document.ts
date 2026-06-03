@@ -5,7 +5,7 @@ import { createQwenEmbeddingProvider } from '../embeddings/qwen-embedding.provid
 import { loadText } from '../loaders/text-loader.js'
 
 export interface IndexTextDocumentInput {
-    documentId: string
+    documentId: number
     content: string
 }
 
