@@ -232,6 +232,8 @@ type IndexItem = {
 
 ## 检索前
 
+> 检索前主要就是针对用户的 query 进行一系列操作
+
 ### Query Transformation
 
 Query Transformation 是一个比较大的概念，指的是在真正检索之前，对用户原始 query 做处理，让它更适合检索。
