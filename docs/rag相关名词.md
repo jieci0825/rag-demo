@@ -632,6 +632,100 @@ Keyword Search 负责找词面明确匹配的内容，Vector Search 负责找语
 
 ### Metadata Filtering
 
+Metadata Filtering 也叫元数据过滤。它根据文档上的结构化 metadata 限制哪些记录可以参与检索，本身不计算 query 和文档的相似度。
+
+例如一个 RAG 系统里有多个知识库和大量文档，每个文档可以记录：
+
+```json
+{
+    "knowledgeBaseId": "company-policy",
+    "department": "HR",
+    "year": 2026,
+    "allowedRoles": ["HR", "管理员"]
+}
+```
+
+这里需要注意，Metadata Filtering 本身不会判断用户拥有哪些权限。用户身份和权限通常由业务系统判断，业务系统再把判断结果转换成过滤条件，交给检索引擎执行。
+
+例如当前用户的角色是 HR，并且查询“2026 年 HR 部门的年假制度”，整个过程可以是：
+
+```text
+业务系统验证用户身份和权限
+-> 生成 allowedRoles 包含 HR、department = HR、year = 2026
+-> 检索引擎根据 metadata 限定候选文档
+-> 在候选文档中执行 Keyword Search 或 Vector Search
+```
+
+过滤条件通常来自：
+- 系统上下文，例如当前用户、角色、租户和可访问知识库
+- 用户明确选择的条件，例如部门、时间和文档类型
+- 从 query 中提取的条件，例如从“2026 年的年假制度”中提取 `year = 2026`
+
+多个知识库也不一定都通过 metadata 区分。系统还可以使用不同的 index、collection 或 namespace 做物理或逻辑隔离，metadata 只是其中一种实现方式。
+
+所以可以简单理解成：
+
+```text
+业务系统负责：判断用户身份和权限，并生成过滤条件
+Metadata Filtering 负责：根据条件限定参与检索的记录
+Keyword Search / Vector Search 负责：在限定范围内判断内容相关性
+```
+
+核心是：**Metadata Filtering 根据权限结果、知识库、部门、时间等结构化条件缩小检索范围，但不负责权限决策，也不参与 query 与文档的相似度计算**。
+
 ### Small-to-Big Retrieval
+
+Small-to-Big Retrieval 可以理解成：**检索时使用较小的 chunk 精确定位相关内容，命中后再取回它所属的较大上下文交给大模型**。
+
+它是 RAG 工程中常用的一种检索模式，但不是定义完全统一的标准算法名称。相关论文更多是在研究检索粒度，以及如何结合细粒度检索和父级上下文。
+
+为什么要这样做？因为 chunk 大小存在一个矛盾：
+
+- 小 chunk 信息集中，更容易和 query 精确匹配，但可能缺少上下文
+- 大 chunk 上下文完整，但可能包含较多无关内容，影响检索精度
+
+例如原文有一个完整段落：
+
+```text
+退款申请需要先经过审核。审核通过后，退款将在 3 个工作日内到账。
+如果审核不通过，系统会通知用户补充材料。
+```
+
+系统可以把其中的小句子作为检索单元：
+
+```text
+审核通过后，退款将在 3 个工作日内到账。
+```
+
+当用户问“退款多久到账”时，先用这个小单元完成精确匹配，再根据它记录的 `parentId`，取回所属的完整段落交给大模型。
+
+整个过程大概是：
+
+```text
+原始文档
+-> 建立大 chunk
+-> 将大 chunk 再拆成小 chunk
+-> 小 chunk 记录 parentId 并建立检索索引
+
+用户 query
+-> 检索小 chunk
+-> 找到对应的大 chunk 或相邻内容
+-> 将较完整的上下文交给大模型
+```
+
+常见实现方式包括：
+
+- Parent-Child Retrieval：检索子 chunk，返回它所属的父 chunk
+- Sentence Window Retrieval：检索命中的句子，再补充前后若干句
+
+论文研究也支持这种设计背后的粒度权衡：
+
+- [Dense X Retrieval](https://arxiv.org/abs/2312.06648) 的实验表明，检索单元的粒度会明显影响检索效果，命题、句子等细粒度单元通常比大段落包含更高密度的相关信息。
+- [Rethinking Chunk Size for Long-Document Retrieval](https://arxiv.org/abs/2505.21700) 发现，小 chunk 更适合精确、事实型问题，而需要广泛上下文的问题可能受益于大 chunk。
+- [H-RAG](https://arxiv.org/abs/2605.00631) 使用细粒度子节点进行检索，再在生成阶段聚合父级上下文，体现了类似的父子检索思路。
+
+需要注意的是，返回的上下文并不是越大越好。如果父 chunk 或扩展窗口过大，仍然会带入无关内容、增加 token 消耗。因此小 chunk 和大上下文的尺寸需要根据文档结构和问题类型进行评估。
+
+核心是：**用小 chunk 提高检索精度，再用它对应的大上下文补全语义，让“检索准确”和“上下文完整”不必使用同一个粒度**。
 
 ### Hypothetical Retrieval
