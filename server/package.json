@@ -13,18 +13,23 @@
         "db:migrate": "drizzle-kit migrate"
     },
     "dependencies": {
+        "@koa/multer": "4.0.0",
         "@koa/router": "latest",
         "dotenv": "latest",
         "drizzle-orm": "latest",
         "koa": "latest",
         "koa-bodyparser": "latest",
+        "marked": "18.0.5",
+        "multer": "2.1.1",
         "pg": "latest",
         "zod": "latest"
     },
     "devDependencies": {
         "@types/koa": "latest",
         "@types/koa-bodyparser": "latest",
+        "@types/koa__multer": "2.0.8",
         "@types/koa__router": "latest",
+        "@types/multer": "2.0.0",
         "@types/node": "latest",
         "@types/pg": "latest",
         "drizzle-kit": "latest",
