@@ -5,6 +5,7 @@ import { chunkDocument } from '../chunkers/index.js'
 import { createQwenEmbeddingProvider } from '../embeddings/qwen-embedding.provider.js'
 import { parseDocument } from '../parsers/index.js'
 import { buildEmbeddingText } from './build-embedding-text.js'
+import { prepareChunksForIndexing } from './prepare-chunks-for-indexing.js'
 
 import type { SupportedDocumentMimeType } from '../parsers/index.js'
 
@@ -15,15 +16,15 @@ export interface IndexDocumentInput {
 }
 
 /**
- * 解析并切分文档，使用结构上下文生成 embedding 后更新索引状态。
+ * 解析、切分并治理文档 chunks，使用结构上下文生成 embedding 后更新索引状态。
  */
 export async function indexDocument(input: IndexDocumentInput): Promise<void> {
     try {
         const document = parseDocument(input.content, input.mimeType)
-        const chunks = chunkDocument(document)
+        const chunks = prepareChunksForIndexing(chunkDocument(document))
 
         if (chunks.length === 0) {
-            throw new Error('Document content is empty after parsing')
+            throw new Error('Document content is empty after cleaning')
         }
 
         const embeddingProvider = createQwenEmbeddingProvider()
