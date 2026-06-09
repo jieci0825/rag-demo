@@ -1,7 +1,11 @@
 import Router from '@koa/router'
 
 import { validateRequest } from '../../middleware/validate.js'
-import { createTextDocumentController } from './documents.controller.js'
+import {
+    createFileDocumentController,
+    createTextDocumentController,
+} from './documents.controller.js'
+import { uploadDocumentFile } from './document-upload.js'
 import { createTextDocumentBodySchema } from './documents.schema.js'
 
 /**
@@ -10,7 +14,23 @@ import { createTextDocumentBodySchema } from './documents.schema.js'
 export function createDocumentsRoutes(): Router {
     const router = new Router()
 
-    router.post('/api/documents/text', validateRequest({ body: createTextDocumentBodySchema }), createTextDocumentController)
+    /**
+     * 接受纯文本内容并创建文档
+     */
+    router.post(
+        '/api/documents/text',
+        validateRequest({ body: createTextDocumentBodySchema }),
+        createTextDocumentController
+    )
+
+    /**
+     * 上传文件并创建文档
+     */
+    router.post(
+        '/api/documents/file',
+        uploadDocumentFile(),
+        createFileDocumentController
+    )
 
     return router
 }

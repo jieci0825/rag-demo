@@ -1,12 +1,12 @@
 import { eq } from 'drizzle-orm'
 
+import { DOCUMENT_STATUS } from '../../constants/document-constants.js'
 import { db } from '../../db/index.js'
 import { documents } from '../../db/schema.js'
 import { getNow } from '../../lib/time.js'
 
+import type { DocumentStatus } from '../../constants/document-constants.js'
 import type { Document, NewDocument } from '../../db/schema.js'
-
-export type DocumentStatus = 'pending' | 'indexed' | 'failed'
 
 /**
  * 新增文档记录并返回数据库生成的完整文档。
@@ -32,7 +32,7 @@ export async function updateDocumentIndexStatus(
         .set({
             status,
             errorMessage,
-            indexedAt: status === 'indexed' ? now : null,
+            indexedAt: status === DOCUMENT_STATUS.INDEXED ? now : null,
             updatedAt: now,
         })
         .where(eq(documents.id, documentId))

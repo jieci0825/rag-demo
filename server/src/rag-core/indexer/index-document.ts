@@ -1,28 +1,34 @@
+import { DOCUMENT_STATUS } from '../../constants/document-constants.js'
 import { createDocumentChunks } from '../../modules/chunks/chunks.repository.js'
 import { updateDocumentIndexStatus } from '../../modules/documents/documents.repository.js'
-import { chunkText } from '../chunkers/recursive-chunker.js'
+import { chunkDocument } from '../chunkers/index.js'
 import { createQwenEmbeddingProvider } from '../embeddings/qwen-embedding.provider.js'
-import { loadText } from '../loaders/text-loader.js'
+import { parseDocument } from '../parsers/index.js'
+import { buildEmbeddingText } from './build-embedding-text.js'
 
-export interface IndexTextDocumentInput {
+import type { SupportedDocumentMimeType } from '../parsers/index.js'
+
+export interface IndexDocumentInput {
     documentId: number
     content: string
+    mimeType: SupportedDocumentMimeType
 }
 
 /**
- * 将纯文本文档索引为 chunks 和 embedding，并更新文档状态。
+ * 解析并切分文档，使用结构上下文生成 embedding 后更新索引状态。
  */
-export async function indexTextDocument(input: IndexTextDocumentInput): Promise<void> {
+export async function indexDocument(input: IndexDocumentInput): Promise<void> {
     try {
-        const text = loadText(input.content)
-        const chunks = chunkText(text)
+        const document = parseDocument(input.content, input.mimeType)
+        const chunks = chunkDocument(document)
 
         if (chunks.length === 0) {
-            throw new Error('Document content is empty after text loading')
+            throw new Error('Document content is empty after parsing')
         }
 
         const embeddingProvider = createQwenEmbeddingProvider()
-        const embeddings = await embeddingProvider.embedTexts(chunks.map(chunk => chunk.content))
+        const embeddingTexts = chunks.map(buildEmbeddingText)
+        const embeddings = await embeddingProvider.embedTexts(embeddingTexts)
 
         await createDocumentChunks(chunks.map((chunk, chunkIndex) => ({
             documentId: input.documentId,
@@ -34,9 +40,13 @@ export async function indexTextDocument(input: IndexTextDocumentInput): Promise<
             metadata: chunk.metadata,
         })))
 
-        await updateDocumentIndexStatus(input.documentId, 'indexed')
+        await updateDocumentIndexStatus(input.documentId, DOCUMENT_STATUS.INDEXED)
     } catch (error) {
-        await updateDocumentIndexStatus(input.documentId, 'failed', getIndexErrorMessage(error))
+        await updateDocumentIndexStatus(
+            input.documentId,
+            DOCUMENT_STATUS.FAILED,
+            getIndexErrorMessage(error),
+        )
     }
 }
 
