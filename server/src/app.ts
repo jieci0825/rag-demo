@@ -5,6 +5,7 @@ import bodyParser from 'koa-bodyparser'
 import { NotFoundError, SuccessException } from './lib/errors.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { requestId } from './middleware/request-id.js'
+import { requestLogger } from './middleware/request-logger.js'
 import { createDocumentsRoutes } from './modules/documents/documents.routes.js'
 
 /**
@@ -23,8 +24,9 @@ export function createApp(): Koa {
 
     const documentsRoutes = createDocumentsRoutes()
 
-    app.use(errorHandler())
     app.use(requestId())
+    app.use(requestLogger())
+    app.use(errorHandler())
     app.use(bodyParser())
     app.use(router.routes())
     app.use(router.allowedMethods())

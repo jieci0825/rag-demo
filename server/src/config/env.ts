@@ -5,6 +5,7 @@ config()
 
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'production']).default('development'),
+    LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
     PORT: z.coerce.number().int().positive(),
     DATABASE_URL: z.string().url(),
     OLLAMA_BASE_URL: z.string().url().default('http://localhost:11434'),

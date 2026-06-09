@@ -1,12 +1,10 @@
 import { isKnownException } from '../lib/errors.js'
-import { env } from '../config/env.js'
+import { logger } from '../lib/logger.js'
 
 import type { Middleware } from 'koa'
+import type { Logger } from 'pino'
 
 const INTERNAL_SERVER_ERROR_CODE = 500
-const isProduction = env.NODE_ENV === 'production'
-
-console.log('NODE_ENV:', env.NODE_ENV)
 
 /**
  * 将成功、已知错误、未知错误统一转换为稳定的 JSON 响应。
@@ -26,9 +24,11 @@ export function errorHandler(): Middleware {
                 return
             }
 
-            if (!isProduction) {
-                console.log(error)
-            }
+            const currentLogger = ctx.state.logger as Logger | undefined
+
+            (currentLogger ?? logger).error({
+                err: error,
+            }, 'Unhandled request error')
 
             ctx.status = 500
             ctx.body = {

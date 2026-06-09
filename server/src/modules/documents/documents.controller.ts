@@ -5,6 +5,7 @@ import { createFileDocumentBodySchema } from './documents.schema.js'
 import { createFileDocument, createTextDocument } from './documents.service.js'
 
 import type { Context } from 'koa'
+import type { Logger } from 'pino'
 import type { CreateTextDocumentBody } from './documents.schema.js'
 
 /**
@@ -14,7 +15,8 @@ export async function createTextDocumentController(
     ctx: Context
 ): Promise<void> {
     const body = ctx.state.validated.body as CreateTextDocumentBody
-    const document = await createTextDocument(body)
+    const requestLogger = ctx.state.logger as Logger
+    const document = await createTextDocument(body, requestLogger)
 
     throw new SuccessException(document, 202)
 }
@@ -38,7 +40,8 @@ export async function createFileDocumentController(ctx: Context): Promise<void> 
         throw new ValidationError(result.error.flatten())
     }
 
-    const document = await createFileDocument(result.data, file)
+    const requestLogger = ctx.state.logger as Logger
+    const document = await createFileDocument(result.data, file, requestLogger)
 
     throw new SuccessException(document, 202)
 }

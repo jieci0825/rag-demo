@@ -1,3 +1,4 @@
+import pino from 'pino'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ConflictError } from '../src/lib/errors.js'
@@ -6,6 +7,8 @@ import {
     createFileDocument,
     createTextDocument,
 } from '../src/modules/documents/documents.service.js'
+
+const testLogger = pino({ level: 'silent' })
 
 const mocks = vi.hoisted(() => ({
     createDocument: vi.fn(),
@@ -49,7 +52,7 @@ describe('文档内容去重', () => {
         await expect(createTextDocument({
             title: '重复文本',
             content,
-        })).rejects.toEqual(new ConflictError('Document content already exists'))
+        }, testLogger)).rejects.toEqual(new ConflictError('Document content already exists'))
 
         expect(mocks.existsDocumentByContentHash).toHaveBeenCalledWith(
             createContentHash(content),
@@ -68,7 +71,7 @@ describe('文档内容去重', () => {
         mocks.loadFile.mockResolvedValue(content)
         mocks.existsDocumentByContentHash.mockResolvedValue(true)
 
-        await expect(createFileDocument({}, file))
+        await expect(createFileDocument({}, file, testLogger))
             .rejects.toEqual(new ConflictError('Document content already exists'))
 
         expect(mocks.existsDocumentByContentHash).toHaveBeenCalledWith(
