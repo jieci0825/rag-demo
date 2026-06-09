@@ -58,6 +58,19 @@ export class ValidationError extends AppError {
 }
 
 /**
+ * 表示请求与服务端现有资源发生冲突。
+ */
+export class ConflictError extends AppError {
+    /**
+     * 创建资源冲突异常。
+     */
+    constructor(message: string, data: unknown = null) {
+        super(409, message, data)
+        this.name = 'ConflictError'
+    }
+}
+
+/**
  * 表示请求路由不存在。
  */
 export class NotFoundError extends AppError {

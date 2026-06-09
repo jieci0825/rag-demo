@@ -1,4 +1,13 @@
-import { index, jsonb, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import {
+    index,
+    jsonb,
+    pgTable,
+    serial,
+    text,
+    timestamp,
+    uniqueIndex,
+    varchar,
+} from 'drizzle-orm/pg-core'
 
 export const documents = pgTable(
     'documents',
@@ -30,7 +39,7 @@ export const documents = pgTable(
     },
     table => [
         index('idx_documents_status').on(table.status),
-        index('idx_documents_content_hash').on(table.contentHash),
+        uniqueIndex('uniq_documents_content_hash').on(table.contentHash),
     ],
 )
 

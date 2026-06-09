@@ -5,11 +5,15 @@ import {
     DOCUMENT_SOURCE_TYPE,
     DOCUMENT_STATUS,
 } from '../../constants/document-constants.js'
+import { ConflictError } from '../../lib/errors.js'
 import { createContentHash } from '../../lib/hash.js'
 import { indexDocument } from '../../rag-core/indexer/index-document.js'
 import { loadFile } from '../../rag-core/loaders/file-loader.js'
 import { getDocumentMimeType } from './document-upload.js'
-import { createDocument } from './documents.repository.js'
+import {
+    createDocument,
+    existsDocumentByContentHash,
+} from './documents.repository.js'
 
 import type { Document } from '../../db/schema.js'
 import type { CreateFileDocumentBody, CreateTextDocumentBody } from './documents.schema.js'
@@ -37,12 +41,15 @@ export interface CreatedFileDocument extends CreatedTextDocument {
  * 创建纯文本文档，并在进程内触发异步索引。
  */
 export async function createTextDocument(input: CreateTextDocumentBody): Promise<CreatedTextDocument> {
+    const contentHash = createContentHash(input.content)
+    await assertContentHashAvailable(contentHash)
+
     const document = await createDocument({
         title: input.title,
         sourceType: DOCUMENT_SOURCE_TYPE.TEXT,
         sourceUri: null,
         mimeType: DOCUMENT_MIME_TYPE.TEXT,
-        contentHash: createContentHash(input.content),
+        contentHash,
         metadata: input.metadata ?? {},
         status: DOCUMENT_STATUS.PENDING,
         errorMessage: null,
@@ -67,6 +74,9 @@ export async function createFileDocument(
 ): Promise<CreatedFileDocument> {
     try {
         const content = await loadFile(file.path)
+        const contentHash = createContentHash(content)
+        await assertContentHashAvailable(contentHash)
+
         const mimeType = getDocumentMimeType(file.filename)
         const sourceUri = `/uploads/${file.filename}`
         const document = await createDocument({
@@ -74,7 +84,7 @@ export async function createFileDocument(
             sourceType: DOCUMENT_SOURCE_TYPE.FILE,
             sourceUri,
             mimeType,
-            contentHash: createContentHash(content),
+            contentHash,
             metadata: input.metadata ?? {},
             status: DOCUMENT_STATUS.PENDING,
             errorMessage: null,
@@ -95,6 +105,15 @@ export async function createFileDocument(
     } catch (error) {
         await unlink(file.path).catch(() => undefined)
         throw error
+    }
+}
+
+/**
+ * 拒绝创建与现有文档内容哈希相同的文档。
+ */
+async function assertContentHashAvailable(contentHash: string): Promise<void> {
+    if (await existsDocumentByContentHash(contentHash)) {
+        throw new ConflictError('Document content already exists')
     }
 }
 
