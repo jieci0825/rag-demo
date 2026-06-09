@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 server/.env
+server/uploads/
 pnpm-lock.yaml
 package-lock.json
 
