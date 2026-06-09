@@ -2,27 +2,32 @@ import { describe, expect, it } from 'vitest'
 
 import { chunkDocument } from '../src/rag-core/chunkers/index.js'
 import { buildEmbeddingText } from '../src/rag-core/indexer/build-embedding-text.js'
-import { parseMarkdownDocument, parseTextDocument } from '../src/rag-core/parsers/index.js'
+import {
+    parseMarkdownDocument,
+    parseTextDocument,
+} from '../src/rag-core/parsers/index.js'
 
 describe('统一文档切分', () => {
     it('按标题边界切分并保存完整标题路径', () => {
-        const document = parseMarkdownDocument([
-            '# 海水缸维护',
-            '',
-            '概览。',
-            '',
-            '## 水质检测',
-            '',
-            '检测氨和硝酸盐。',
-            '',
-            '### 基础指标',
-            '',
-            '记录盐度。',
-            '',
-            '## 换水',
-            '',
-            '每周换水。',
-        ].join('\n'))
+        const document = parseMarkdownDocument(
+            [
+                '# 海水缸维护',
+                '',
+                '概览。',
+                '',
+                '## 水质检测',
+                '',
+                '检测氨和硝酸盐。',
+                '',
+                '### 基础指标',
+                '',
+                '记录盐度。',
+                '',
+                '## 换水',
+                '',
+                '每周换水。',
+            ].join('\n')
+        )
 
         expect(chunkDocument(document)).toEqual([
             {
@@ -38,7 +43,9 @@ describe('统一文档切分', () => {
             {
                 content: '记录盐度。',
                 charCount: 5,
-                metadata: { headingPath: ['海水缸维护', '水质检测', '基础指标'] },
+                metadata: {
+                    headingPath: ['海水缸维护', '水质检测', '基础指标'],
+                },
             },
             {
                 content: '每周换水。',
@@ -78,11 +85,9 @@ describe('统一文档切分', () => {
     })
 
     it('标题层级跳跃时不会生成空标题路径', () => {
-        const document = parseMarkdownDocument([
-            '# 一级标题',
-            '### 三级标题',
-            '正文。',
-        ].join('\n'))
+        const document = parseMarkdownDocument(
+            ['# 一级标题', '### 三级标题', '正文。'].join('\n')
+        )
 
         expect(chunkDocument(document)[0].metadata.headingPath).toEqual([
             '一级标题',
@@ -91,18 +96,37 @@ describe('统一文档切分', () => {
     })
 
     it('Embedding 输入包含标题路径但不修改原始正文', () => {
-        const [chunk] = chunkDocument(parseMarkdownDocument([
-            '# 海水缸维护',
-            '## 水质检测',
-            '定期检测氨和硝酸盐。',
-        ].join('\n')))
+        const [chunk] = chunkDocument(
+            parseMarkdownDocument(
+                ['# 海水缸维护', '## 水质检测', '定期检测氨和硝酸盐。'].join(
+                    '\n'
+                )
+            )
+        )
 
         expect(chunk.content).toBe('定期检测氨和硝酸盐。')
-        expect(buildEmbeddingText(chunk)).toBe([
+        expect(buildEmbeddingText(chunk)).toBe(
+            ['海水缸维护', '水质检测', '', '定期检测氨和硝酸盐。'].join('\n')
+        )
+    })
+
+    it('父标题存在简单的正文时，子标题的正文仍然保留完整标题路径', () => {
+        const document = parseMarkdownDocument(
+            [
+                '# 海水缸维护',
+                '这是一段简单的正文。',
+                '## 水质检测',
+                '检测氨和硝酸盐。',
+            ].join('\n')
+        )
+
+        const chunks = chunkDocument(document)
+        expect(chunks[0].metadata.headingPath).toEqual(['海水缸维护'])
+        expect(chunks[0].content).toBe('这是一段简单的正文。')
+        expect(chunks[1].metadata.headingPath).toEqual([
             '海水缸维护',
             '水质检测',
-            '',
-            '定期检测氨和硝酸盐。',
-        ].join('\n'))
+        ])
+        expect(chunks[1].content).toBe('检测氨和硝酸盐。')
     })
 })
