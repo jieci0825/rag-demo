@@ -1,5 +1,6 @@
 import { isKnownException } from '../lib/errors.js'
 import { logger } from '../lib/logger.js'
+import { formatResponseDateTimes } from '../lib/time.js'
 
 import type { Middleware } from 'koa'
 import type { Logger } from 'pino'
@@ -19,7 +20,7 @@ export function errorHandler(): Middleware {
                 ctx.body = {
                     errorCode: error.errorCode,
                     message: error.message,
-                    data: error.data,
+                    data: formatResponseDateTimes(error.data),
                 }
                 return
             }

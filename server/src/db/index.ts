@@ -6,6 +6,7 @@ import * as schema from './schema.js'
 
 export const pool = new Pool({
     connectionString: env.DATABASE_URL,
+    options: '-c timezone=Asia/Shanghai',
 })
 
 export const db = drizzle(pool, { schema })

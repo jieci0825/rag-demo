@@ -4,10 +4,11 @@ import {
     pgTable,
     serial,
     text,
-    timestamp,
     uniqueIndex,
     varchar,
 } from 'drizzle-orm/pg-core'
+
+import { timestampWithTimezone } from './timestamp-schema.js'
 
 export const documents = pgTable(
     'documents',
@@ -31,11 +32,11 @@ export const documents = pgTable(
         /** 索引失败时的错误信息，成功或未处理时为空。 */
         errorMessage: text('error_message'),
         /** 文档完成索引的时间，未完成索引时为空。 */
-        indexedAt: timestamp('indexed_at', { withTimezone: true }),
+        indexedAt: timestampWithTimezone('indexed_at'),
         /** 文档记录创建时间。 */
-        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+        createdAt: timestampWithTimezone('created_at').defaultNow().notNull(),
         /** 文档记录最后更新时间。 */
-        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+        updatedAt: timestampWithTimezone('updated_at').defaultNow().notNull(),
     },
     table => [
         index('idx_documents_status').on(table.status),

@@ -1,6 +1,7 @@
-import { index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, vector } from 'drizzle-orm/pg-core'
+import { index, integer, jsonb, pgTable, serial, text, uniqueIndex, vector } from 'drizzle-orm/pg-core'
 
 import { EMBEDDING_DIMENSIONS } from './constants.js'
+import { timestampWithTimezone } from './timestamp-schema.js'
 
 export const documentChunks = pgTable(
     'document_chunks',
@@ -22,7 +23,7 @@ export const documentChunks = pgTable(
         /** chunk 级扩展元数据，保留切分位置等非固定字段。 */
         metadata: jsonb('metadata').$type<Record<string, unknown>>(),
         /** chunk 记录创建时间。 */
-        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+        createdAt: timestampWithTimezone('created_at').defaultNow().notNull(),
     },
     table => [
         index('idx_document_chunks_document_id').on(table.documentId),

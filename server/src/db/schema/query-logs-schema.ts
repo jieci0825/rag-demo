@@ -1,6 +1,7 @@
-import { index, integer, jsonb, pgTable, serial, text, timestamp, vector } from 'drizzle-orm/pg-core'
+import { index, integer, jsonb, pgTable, serial, text, vector } from 'drizzle-orm/pg-core'
 
 import { EMBEDDING_DIMENSIONS } from './constants.js'
+import { timestampWithTimezone } from './timestamp-schema.js'
 
 export const queryLogs = pgTable(
     'query_logs',
@@ -18,7 +19,7 @@ export const queryLogs = pgTable(
         /** 本次查询链路耗时，单位为毫秒。 */
         latencyMs: integer('latency_ms'),
         /** 查询日志创建时间。 */
-        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+        createdAt: timestampWithTimezone('created_at').defaultNow().notNull(),
     },
     table => [
         index('idx_query_logs_created_at').on(table.createdAt),
