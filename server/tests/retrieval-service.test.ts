@@ -23,7 +23,7 @@ vi.mock('../src/lib/logger.js', () => ({
     log: mocks.log,
 }))
 
-describe('查询改写服务', () => {
+describe('查询转换服务', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         mocks.createQueryLog.mockResolvedValue(undefined)
@@ -31,7 +31,8 @@ describe('查询改写服务', () => {
 
     it('根据提供商创建 Provider 并传递模型名称', async () => {
         const llmProvider = createTestLlmProvider({
-            rewrittenQuery: '标准查询',
+            strategy: 'rewrite',
+            queries: ['标准查询'],
         })
 
         mocks.createLlmProvider.mockReturnValue(llmProvider)
@@ -51,7 +52,8 @@ describe('查询改写服务', () => {
 
     it('只将 trim 后的查询交给 LLM，并保留原文写入日志和响应', async () => {
         const generateStructuredOutput = vi.fn().mockResolvedValue({
-            rewrittenQuery: 'Markdown 文档上传后如何进行解析和 Chunk 切分？',
+            strategy: 'rewrite',
+            queries: ['Markdown 文档上传后如何进行解析和 Chunk 切分？'],
         })
         const llmProvider = {
             chat: vi.fn(),
@@ -65,7 +67,8 @@ describe('查询改写服务', () => {
             model: 'deepseek-v4-flash',
         }, llmProvider)).resolves.toEqual({
             originalQuery,
-            rewrittenQuery: 'Markdown 文档上传后如何进行解析和 Chunk 切分？',
+            strategy: 'rewrite',
+            queries: ['Markdown 文档上传后如何进行解析和 Chunk 切分？'],
         })
 
         expect(generateStructuredOutput).toHaveBeenCalledWith(
@@ -74,32 +77,23 @@ describe('查询改写服务', () => {
                 messages: [
                     {
                         role: 'system',
-                        content: expect.stringContaining('只重写查询。不要回答查询。'),
+                        content: expect.stringContaining('选择且只选择一种查询转换策略'),
                     },
                     {
                         role: 'user',
                         content: 'markdown 上传以后是咋拆的',
                     },
                 ],
-                format: {
-                    type: 'object',
-                    properties: {
-                        rewrittenQuery: {
-                            type: 'string',
-                            minLength: 1,
-                        },
-                    },
-                    required: ['rewrittenQuery'],
-                    additionalProperties: false,
-                },
+                format: expect.objectContaining({
+                    oneOf: expect.any(Array),
+                }),
             },
         )
         expect(mocks.createQueryLog).toHaveBeenCalledWith({
             queryText: originalQuery,
             queryTransforms: {
-                rewrite: {
-                    query: 'Markdown 文档上传后如何进行解析和 Chunk 切分？',
-                },
+                strategy: 'rewrite',
+                queries: ['Markdown 文档上传后如何进行解析和 Chunk 切分？'],
             },
             queryEmbedding: null,
             topK: null,
@@ -108,9 +102,10 @@ describe('查询改写服务', () => {
         })
     })
 
-    it('允许改写结果与原查询相同', async () => {
+    it('允许通过 none 策略保留原查询', async () => {
         const llmProvider = createTestLlmProvider({
-            rewrittenQuery: '已经标准化的查询',
+            strategy: 'none',
+            queries: ['已经标准化的查询'],
         })
 
         await expect(transformQuery({
@@ -119,7 +114,8 @@ describe('查询改写服务', () => {
             model: 'deepseek-v4-flash',
         }, llmProvider)).resolves.toEqual({
             originalQuery: '已经标准化的查询',
-            rewrittenQuery: '已经标准化的查询',
+            strategy: 'none',
+            queries: ['已经标准化的查询'],
         })
     })
 
@@ -135,7 +131,7 @@ describe('查询改写服务', () => {
             provider: 'deepseek',
             model: 'deepseek-v4-flash',
         }, llmProvider)).rejects.toEqual(
-            new BadGatewayError('Query rewrite service failed'),
+            new BadGatewayError('Query transform service failed'),
         )
 
         expect(mocks.createQueryLog).not.toHaveBeenCalled()
@@ -143,7 +139,8 @@ describe('查询改写服务', () => {
 
     it('LLM 返回非法结构时返回 502 且不写日志', async () => {
         const llmProvider = createTestLlmProvider({
-            rewrittenQuery: '   ',
+            strategy: 'multi_query',
+            queries: ['只有一条查询'],
         })
 
         await expect(transformQuery({
@@ -151,7 +148,7 @@ describe('查询改写服务', () => {
             provider: 'deepseek',
             model: 'deepseek-v4-flash',
         }, llmProvider)).rejects.toEqual(
-            new BadGatewayError('Query rewrite service failed'),
+            new BadGatewayError('Query transform service failed'),
         )
 
         expect(mocks.createQueryLog).not.toHaveBeenCalled()
@@ -160,7 +157,8 @@ describe('查询改写服务', () => {
     it('日志写入失败时保留数据库错误', async () => {
         const databaseError = new Error('database failed')
         const llmProvider = createTestLlmProvider({
-            rewrittenQuery: '标准查询',
+            strategy: 'rewrite',
+            queries: ['标准查询'],
         })
 
         mocks.createQueryLog.mockRejectedValue(databaseError)

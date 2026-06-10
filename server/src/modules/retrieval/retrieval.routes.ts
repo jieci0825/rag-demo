@@ -11,7 +11,7 @@ export function createRetrievalRoutes(): Router {
     const router = new Router()
 
     /**
-     * 改写用户查询以用于知识库检索
+     * 选择转换策略并生成用于知识库检索的查询
      * POST /api/retrieval/query-transform
      */
     router.post(
