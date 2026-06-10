@@ -1,18 +1,19 @@
 import { BadGatewayError } from '../../lib/errors.js'
 import { log } from '../../lib/logger.js'
-import { createDeepSeekLlmProvider } from '../../rag-core/llm/index.js'
+import { createLlmProvider } from '../../rag-core/llm/index.js'
 import { createQueryLog } from '../query-logs/query-logs.repository.js'
 import { rewrittenQuerySchema } from './retrieval.schema.js'
 
 import type { LlmProvider } from '../../rag-core/llm/index.js'
+import type { TransformQueryBody } from './retrieval.schema.js'
 
 const QUERY_REWRITE_SYSTEM_PROMPT = [
-    'You rewrite user queries into clear, standalone queries suitable for knowledge-base retrieval.',
-    'Only rewrite the query. Do not answer it.',
-    'Preserve the original intent, entities, numbers, time references, negations, and constraints.',
-    'Do not add information or conditions that are not present in the original query.',
-    'Use the same language as the original query and preserve necessary technical terms.',
-    'If the query is already suitable for retrieval, return it unchanged.',
+    '你将用户查询重写为清晰、独立的查询，以适用于知识库检索。',
+    '只重写查询。不要回答查询。',
+    '保留原始意图、实体、数字、时间引用、否定和约束条件。',
+    '不要添加原始查询中不存在的信息或条件。',
+    '使用与原始查询相同的语言，并保留必要的技术术语。',
+    '如果查询已经适合用于检索，则原样返回。',
 ].join('\n')
 
 const QUERY_REWRITE_FORMAT = {
@@ -31,16 +32,20 @@ const QUERY_REWRITE_FORMAT = {
  * 使用 LLM 改写查询，并在成功后持久化改写日志。
  */
 export async function transformQuery(
-    originalQuery: string,
-    llmProvider: LlmProvider = createDeepSeekLlmProvider(),
+    input: TransformQueryBody,
+    llmProvider = createLlmProvider(input.provider),
 ): Promise<QueryTransformResult> {
-    const normalizedQuery = originalQuery.trim()
+    const normalizedQuery = input.query.trim()
     const startedAt = Date.now()
-    const rewrittenQuery = await rewriteQuery(normalizedQuery, llmProvider)
+    const rewrittenQuery = await rewriteQuery(
+        normalizedQuery,
+        input.model,
+        llmProvider,
+    )
     const latencyMs = Date.now() - startedAt
 
     await createQueryLog({
-        queryText: originalQuery,
+        queryText: input.query,
         queryTransforms: {
             rewrite: {
                 query: rewrittenQuery,
@@ -55,13 +60,15 @@ export async function transformQuery(
     log('info', 'Query rewrite completed', {
         module: 'retrieval',
         operation: 'query-transform',
-        queryLength: originalQuery.length,
+        provider: input.provider,
+        model: input.model,
+        queryLength: input.query.length,
         rewrittenQueryLength: rewrittenQuery.length,
         durationMs: latencyMs,
     })
 
     return {
-        originalQuery,
+        originalQuery: input.query,
         rewrittenQuery,
     }
 }
@@ -71,11 +78,13 @@ export async function transformQuery(
  */
 async function rewriteQuery(
     query: string,
+    model: string,
     llmProvider: LlmProvider,
 ): Promise<string> {
     try {
-        const output = await llmProvider.generateStructuredOutput({
+        const output = await llmProvider.generateStructuredOutput(model, {
             messages: [
+                // 内置的系统提示词。通过 prompt 来进行一些约束，提升输出质量和稳定性。
                 {
                     role: 'system',
                     content: QUERY_REWRITE_SYSTEM_PROMPT,

@@ -6,6 +6,7 @@ import { NotFoundError, SuccessException } from './lib/errors.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { requestId } from './middleware/request-id.js'
 import { requestLogger } from './middleware/request-logger.js'
+import { createChatRoutes } from './modules/chat/index.js'
 import { createDocumentsRoutes } from './modules/documents/documents.routes.js'
 import { createQueryLogsRoutes } from './modules/query-logs/query-logs.routes.js'
 import { createRetrievalRoutes } from './modules/retrieval/retrieval.routes.js'
@@ -28,6 +29,7 @@ export function createApp(): Koa {
         })
     })
 
+    const chatRoutes = createChatRoutes()
     const documentsRoutes = createDocumentsRoutes()
     const queryLogsRoutes = createQueryLogsRoutes()
     const retrievalRoutes = createRetrievalRoutes()
@@ -38,6 +40,8 @@ export function createApp(): Koa {
     app.use(bodyParser())
     app.use(router.routes())
     app.use(router.allowedMethods())
+    app.use(chatRoutes.routes())
+    app.use(chatRoutes.allowedMethods())
     app.use(documentsRoutes.routes())
     app.use(documentsRoutes.allowedMethods())
     app.use(queryLogsRoutes.routes())
