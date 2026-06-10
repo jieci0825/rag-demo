@@ -1,34 +1,32 @@
-import { logger } from '../lib/logger.js'
+import { log, runWithLogContext } from '../lib/logger.js'
 
 import type { Middleware } from 'koa'
 
 /**
- * 为当前请求创建绑定 request id 的 logger，并记录请求结果与耗时。
+ * 建立包含 request id 的日志上下文，并记录请求结果与耗时。
  */
 export function requestLogger(): Middleware {
     return async (ctx, next) => {
-        const startedAt = Date.now()
-        const currentLogger = logger.child({
+        await runWithLogContext({
             requestId: ctx.state.requestId,
+        }, async () => {
+            const startedAt = Date.now()
+
+            log('info', 'HTTP request started', {
+                method: ctx.method,
+                path: ctx.path,
+            })
+
+            await next()
+
+            const logType = ctx.status >= 400 ? 'warn' : 'info'
+
+            log(logType, 'HTTP request completed', {
+                method: ctx.method,
+                path: ctx.path,
+                statusCode: ctx.status,
+                durationMs: Date.now() - startedAt,
+            })
         })
-
-        ctx.state.logger = currentLogger
-        currentLogger.info({
-            method: ctx.method,
-            path: ctx.path,
-        }, 'HTTP request started')
-
-        await next()
-
-        const logRequestCompleted = ctx.status >= 400
-            ? currentLogger.warn.bind(currentLogger)
-            : currentLogger.info.bind(currentLogger)
-
-        logRequestCompleted({
-            method: ctx.method,
-            path: ctx.path,
-            statusCode: ctx.status,
-            durationMs: Date.now() - startedAt,
-        }, 'HTTP request completed')
     }
 }

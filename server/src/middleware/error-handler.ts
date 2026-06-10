@@ -1,9 +1,8 @@
 import { isKnownException } from '../lib/errors.js'
-import { logger } from '../lib/logger.js'
+import { log } from '../lib/logger.js'
 import { formatResponseDateTimes } from '../lib/time.js'
 
 import type { Middleware } from 'koa'
-import type { Logger } from 'pino'
 
 const INTERNAL_SERVER_ERROR_CODE = 500
 
@@ -25,11 +24,9 @@ export function errorHandler(): Middleware {
                 return
             }
 
-            const currentLogger = ctx.state.logger as Logger | undefined
-
-            (currentLogger ?? logger).error({
+            log('error', 'Unhandled request error', {
                 err: error,
-            }, 'Unhandled request error')
+            })
 
             ctx.status = 500
             ctx.body = {

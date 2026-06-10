@@ -3,12 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DOCUMENT_STATUS } from '../src/constants/document-constants.js'
 import { indexDocument } from '../src/rag-core/indexer/index-document.js'
 
-import type { Logger } from 'pino'
-
 const mocks = vi.hoisted(() => ({
     chunkDocument: vi.fn(),
     createDocumentChunks: vi.fn(),
     embedTexts: vi.fn(),
+    log: vi.fn(),
     parseDocument: vi.fn(),
     prepareChunksForIndexing: vi.fn(),
     updateDocumentIndexStatus: vi.fn(),
@@ -48,16 +47,9 @@ vi.mock('../src/rag-core/indexer/prepare-chunks-for-indexing.js', () => ({
     prepareChunksForIndexing: mocks.prepareChunksForIndexing,
 }))
 
-const logSpies = {
-    error: vi.fn(),
-    info: vi.fn(),
-}
-const testLogger = {
-    child: vi.fn(() => ({
-        error: logSpies.error,
-        info: logSpies.info,
-    })),
-} as unknown as Logger
+vi.mock('../src/lib/logger.js', () => ({
+    log: mocks.log,
+}))
 
 describe('文档索引日志流程', () => {
     beforeEach(() => {
@@ -83,7 +75,7 @@ describe('文档索引日志流程', () => {
             documentId: 1,
             content: 'content',
             mimeType: 'text/plain',
-        }, testLogger)
+        })
 
         expect(mocks.createDocumentChunks).toHaveBeenCalledWith([{
             documentId: 1,
@@ -100,11 +92,12 @@ describe('文档索引日志流程', () => {
             1,
             DOCUMENT_STATUS.INDEXED,
         )
-        expect(logSpies.info).toHaveBeenCalledWith(
+        expect(mocks.log).toHaveBeenCalledWith(
+            'info',
+            'Document indexing completed',
             expect.objectContaining({
                 status: DOCUMENT_STATUS.INDEXED,
             }),
-            'Document indexing completed',
         )
     })
 
@@ -117,14 +110,15 @@ describe('文档索引日志流程', () => {
             documentId: 2,
             content: 'content',
             mimeType: 'text/plain',
-        }, testLogger)
+        })
 
-        expect(logSpies.error).toHaveBeenCalledWith(
+        expect(mocks.log).toHaveBeenCalledWith(
+            'error',
+            'Document indexing failed',
             expect.objectContaining({
                 err: error,
                 stage: 'embedding',
             }),
-            'Document indexing failed',
         )
         expect(mocks.updateDocumentIndexStatus).toHaveBeenCalledWith(
             2,

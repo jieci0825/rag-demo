@@ -1,9 +1,9 @@
 import { BadGatewayError } from '../../lib/errors.js'
+import { log } from '../../lib/logger.js'
 import { createDeepSeekLlmProvider } from '../../rag-core/llm/index.js'
 import { createQueryLog } from '../query-logs/query-logs.repository.js'
 import { rewrittenQuerySchema } from './retrieval.schema.js'
 
-import type { Logger } from 'pino'
 import type { LlmProvider } from '../../rag-core/llm/index.js'
 
 const QUERY_REWRITE_SYSTEM_PROMPT = [
@@ -32,13 +32,8 @@ const QUERY_REWRITE_FORMAT = {
  */
 export async function transformQuery(
     originalQuery: string,
-    requestLogger: Logger,
     llmProvider: LlmProvider = createDeepSeekLlmProvider(),
 ): Promise<QueryTransformResult> {
-    const operationLogger = requestLogger.child({
-        module: 'retrieval',
-        operation: 'query-transform',
-    })
     const normalizedQuery = originalQuery.trim()
     const startedAt = Date.now()
     const rewrittenQuery = await rewriteQuery(normalizedQuery, llmProvider)
@@ -57,11 +52,13 @@ export async function transformQuery(
         latencyMs,
     })
 
-    operationLogger.info({
+    log('info', 'Query rewrite completed', {
+        module: 'retrieval',
+        operation: 'query-transform',
         queryLength: originalQuery.length,
         rewrittenQueryLength: rewrittenQuery.length,
         durationMs: latencyMs,
-    }, 'Query rewrite completed')
+    })
 
     return {
         originalQuery,

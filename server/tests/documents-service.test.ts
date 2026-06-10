@@ -1,4 +1,3 @@
-import pino from 'pino'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ConflictError } from '../src/lib/errors.js'
@@ -8,13 +7,12 @@ import {
     createTextDocument,
 } from '../src/modules/documents/documents.service.js'
 
-const testLogger = pino({ level: 'silent' })
-
 const mocks = vi.hoisted(() => ({
     createDocument: vi.fn(),
     existsDocumentByContentHash: vi.fn(),
     indexDocument: vi.fn(),
     loadFile: vi.fn(),
+    log: vi.fn(),
     unlink: vi.fn(),
 }))
 
@@ -35,6 +33,10 @@ vi.mock('../src/rag-core/loaders/file-loader.js', () => ({
     loadFile: mocks.loadFile,
 }))
 
+vi.mock('../src/lib/logger.js', () => ({
+    log: mocks.log,
+}))
+
 vi.mock('../src/modules/documents/document-upload.js', () => ({
     getDocumentMimeType: vi.fn(() => 'text/plain'),
 }))
@@ -52,7 +54,7 @@ describe('文档内容去重', () => {
         await expect(createTextDocument({
             title: '重复文本',
             content,
-        }, testLogger)).rejects.toEqual(new ConflictError('Document content already exists'))
+        })).rejects.toEqual(new ConflictError('Document content already exists'))
 
         expect(mocks.existsDocumentByContentHash).toHaveBeenCalledWith(
             createContentHash(content),
@@ -71,7 +73,7 @@ describe('文档内容去重', () => {
         mocks.loadFile.mockResolvedValue(content)
         mocks.existsDocumentByContentHash.mockResolvedValue(true)
 
-        await expect(createFileDocument({}, file, testLogger))
+        await expect(createFileDocument({}, file))
             .rejects.toEqual(new ConflictError('Document content already exists'))
 
         expect(mocks.existsDocumentByContentHash).toHaveBeenCalledWith(

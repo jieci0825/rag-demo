@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BadGatewayError } from '../src/lib/errors.js'
 import { transformQuery } from '../src/modules/retrieval/retrieval.service.js'
 
-import type { Logger } from 'pino'
 import type { LlmProvider } from '../src/rag-core/llm/index.js'
 
 const mocks = vi.hoisted(() => ({
     createQueryLog: vi.fn(),
+    log: vi.fn(),
 }))
 
 vi.mock('../src/config/env.js', () => ({
@@ -22,14 +22,9 @@ vi.mock('../src/modules/query-logs/query-logs.repository.js', () => ({
     createQueryLog: mocks.createQueryLog,
 }))
 
-const logSpies = {
-    info: vi.fn(),
-}
-const testLogger = {
-    child: vi.fn(() => ({
-        info: logSpies.info,
-    })),
-} as unknown as Logger
+vi.mock('../src/lib/logger.js', () => ({
+    log: mocks.log,
+}))
 
 describe('查询改写服务', () => {
     beforeEach(() => {
@@ -48,7 +43,6 @@ describe('查询改写服务', () => {
 
         await expect(transformQuery(
             originalQuery,
-            testLogger,
             llmProvider,
         )).resolves.toEqual({
             originalQuery,
@@ -99,7 +93,6 @@ describe('查询改写服务', () => {
 
         await expect(transformQuery(
             '已经标准化的查询',
-            testLogger,
             llmProvider,
         )).resolves.toEqual({
             originalQuery: '已经标准化的查询',
@@ -116,7 +109,6 @@ describe('查询改写服务', () => {
 
         await expect(transformQuery(
             '原查询',
-            testLogger,
             llmProvider,
         )).rejects.toEqual(new BadGatewayError('Query rewrite service failed'))
 
@@ -130,7 +122,6 @@ describe('查询改写服务', () => {
 
         await expect(transformQuery(
             '原查询',
-            testLogger,
             llmProvider,
         )).rejects.toEqual(new BadGatewayError('Query rewrite service failed'))
 
@@ -147,7 +138,6 @@ describe('查询改写服务', () => {
 
         await expect(transformQuery(
             '原查询',
-            testLogger,
             llmProvider,
         )).rejects.toBe(databaseError)
     })

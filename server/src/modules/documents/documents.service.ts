@@ -7,6 +7,7 @@ import {
 } from '../../constants/document-constants.js'
 import { ConflictError } from '../../lib/errors.js'
 import { createContentHash } from '../../lib/hash.js'
+import { log } from '../../lib/logger.js'
 import { indexDocument } from '../../rag-core/indexer/index-document.js'
 import { loadFile } from '../../rag-core/loaders/file-loader.js'
 import { getDocumentMimeType } from './document-upload.js'
@@ -15,7 +16,6 @@ import {
     existsDocumentByContentHash,
 } from './documents.repository.js'
 
-import type { Logger } from 'pino'
 import type { Document } from '../../db/schema.js'
 import type { CreateFileDocumentBody, CreateTextDocumentBody } from './documents.schema.js'
 
@@ -43,17 +43,14 @@ export interface CreatedFileDocument extends CreatedTextDocument {
  */
 export async function createTextDocument(
     input: CreateTextDocumentBody,
-    requestLogger: Logger,
 ): Promise<CreatedTextDocument> {
-    const operationLogger = requestLogger.child({
-        module: 'documents',
-        sourceType: DOCUMENT_SOURCE_TYPE.TEXT,
-    })
     const startedAt = Date.now()
 
-    operationLogger.info({
+    log('info', 'Text document creation started', {
+        module: 'documents',
+        sourceType: DOCUMENT_SOURCE_TYPE.TEXT,
         contentLength: input.content.length,
-    }, 'Text document creation started')
+    })
 
     const contentHash = createContentHash(input.content)
     await assertContentHashAvailable(contentHash)
@@ -70,16 +67,18 @@ export async function createTextDocument(
         indexedAt: null,
     })
 
-    operationLogger.info({
+    log('info', 'Text document record created', {
+        module: 'documents',
+        sourceType: DOCUMENT_SOURCE_TYPE.TEXT,
         documentId: document.id,
         durationMs: Date.now() - startedAt,
-    }, 'Text document record created')
+    })
 
     void indexDocument({
         documentId: document.id,
         content: input.content,
         mimeType: DOCUMENT_MIME_TYPE.TEXT,
-    }, operationLogger)
+    })
 
     return toCreatedTextDocument(document)
 }
@@ -90,28 +89,27 @@ export async function createTextDocument(
 export async function createFileDocument(
     input: CreateFileDocumentBody,
     file: UploadedDocumentFile,
-    requestLogger: Logger,
 ): Promise<CreatedFileDocument> {
-    const operationLogger = requestLogger.child({
-        module: 'documents',
-        sourceType: DOCUMENT_SOURCE_TYPE.FILE,
-    })
     const startedAt = Date.now()
 
     try {
         const loadStartedAt = Date.now()
 
-        operationLogger.info({
+        log('info', 'Document file loading started', {
+            module: 'documents',
+            sourceType: DOCUMENT_SOURCE_TYPE.FILE,
             storedFilename: file.filename,
-        }, 'Document file loading started')
+        })
 
         const content = await loadFile(file.path)
 
-        operationLogger.info({
+        log('info', 'Document file loaded', {
+            module: 'documents',
+            sourceType: DOCUMENT_SOURCE_TYPE.FILE,
             storedFilename: file.filename,
             contentLength: content.length,
             durationMs: Date.now() - loadStartedAt,
-        }, 'Document file loaded')
+        })
 
         const contentHash = createContentHash(content)
         await assertContentHashAvailable(contentHash)
@@ -130,17 +128,19 @@ export async function createFileDocument(
             indexedAt: null,
         })
 
-        operationLogger.info({
+        log('info', 'File document record created', {
+            module: 'documents',
+            sourceType: DOCUMENT_SOURCE_TYPE.FILE,
             documentId: document.id,
             mimeType,
             durationMs: Date.now() - startedAt,
-        }, 'File document record created')
+        })
 
         void indexDocument({
             documentId: document.id,
             content,
             mimeType,
-        }, operationLogger)
+        })
 
         return {
             ...toCreatedTextDocument(document),
@@ -149,11 +149,13 @@ export async function createFileDocument(
         }
     } catch (error) {
         await unlink(file.path).catch(() => undefined)
-        operationLogger.error({
+        log('error', 'File document creation failed', {
+            module: 'documents',
+            sourceType: DOCUMENT_SOURCE_TYPE.FILE,
             err: error,
             storedFilename: file.filename,
             durationMs: Date.now() - startedAt,
-        }, 'File document creation failed')
+        })
         throw error
     }
 }

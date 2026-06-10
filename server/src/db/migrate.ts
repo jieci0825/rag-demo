@@ -1,6 +1,6 @@
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 
-import { logger } from '../lib/logger.js'
+import { log } from '../lib/logger.js'
 import { db, closeDb } from './index.js'
 
 /**
@@ -9,13 +9,13 @@ import { db, closeDb } from './index.js'
 export async function runMigrations(): Promise<void> {
     const startedAt = Date.now()
 
-    logger.info('Database migration started')
+    log('info', 'Database migration started')
 
     try {
         await migrate(db, { migrationsFolder: 'drizzle' })
-        logger.info({
+        log('info', 'Database migration completed', {
             durationMs: Date.now() - startedAt,
-        }, 'Database migration completed')
+        })
     } finally {
         await closeDb()
     }
@@ -26,7 +26,7 @@ if (
     process.argv[1]?.endsWith('migrate.js')
 ) {
     runMigrations().catch((error: unknown) => {
-        logger.fatal({ err: error }, 'Database migration failed')
+        log('fatal', 'Database migration failed', { err: error })
         process.exit(1)
     })
 }
