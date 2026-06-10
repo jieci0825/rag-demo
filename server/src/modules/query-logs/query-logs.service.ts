@@ -1,4 +1,5 @@
-import { NotFoundError } from '../../lib/errors.js'
+import { ERROR_DEFINITIONS } from '../../constants/error-definitions.js'
+import { AppError } from '../../lib/errors.js'
 import { getPagination } from '../../lib/pagination.js'
 import {
     findQueryLogById,
@@ -31,7 +32,7 @@ export async function getQueryLogDetail(id: number): Promise<QueryLogDetail> {
     const queryLog = await findQueryLogById(id)
 
     if (!queryLog) {
-        throw new NotFoundError('Query log not found')
+        throw new AppError(ERROR_DEFINITIONS.QUERY_LOG_NOT_FOUND)
     }
 
     return queryLog

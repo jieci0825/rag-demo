@@ -1,6 +1,7 @@
 import { unlink } from 'node:fs/promises'
 
-import { SuccessException, ValidationError } from '../../lib/errors.js'
+import { ERROR_DEFINITIONS } from '../../constants/error-definitions.js'
+import { AppError, SuccessException } from '../../lib/errors.js'
 import { createFileDocumentBodySchema } from './documents.schema.js'
 import { createFileDocument, createTextDocument } from './documents.service.js'
 
@@ -26,16 +27,22 @@ export async function createFileDocumentController(ctx: Context): Promise<void> 
     const file = ctx.file
 
     if (!file) {
-        throw new ValidationError({
-            file: ['File is required'],
-        })
+        throw new AppError(
+            ERROR_DEFINITIONS.INVALID_REQUEST_PAYLOAD,
+            {
+                file: ['File is required'],
+            },
+        )
     }
 
     const result = createFileDocumentBodySchema.safeParse(ctx.request.body)
 
     if (!result.success) {
         await unlink(file.path).catch(() => undefined)
-        throw new ValidationError(result.error.flatten())
+        throw new AppError(
+            ERROR_DEFINITIONS.INVALID_REQUEST_PAYLOAD,
+            result.error.flatten(),
+        )
     }
 
     const document = await createFileDocument(result.data, file)

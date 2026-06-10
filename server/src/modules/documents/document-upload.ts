@@ -6,7 +6,8 @@ import multer from '@koa/multer'
 import { MulterError } from 'multer'
 
 import { DOCUMENT_MIME_TYPE } from '../../constants/document-constants.js'
-import { ValidationError } from '../../lib/errors.js'
+import { ERROR_DEFINITIONS } from '../../constants/error-definitions.js'
+import { AppError } from '../../lib/errors.js'
 
 import type { IncomingMessage } from 'node:http'
 import type { Middleware } from 'koa'
@@ -36,9 +37,12 @@ export function uploadDocumentFile(): Middleware {
             await middleware(ctx, next)
         } catch (error) {
             if (error instanceof MulterError) {
-                throw new ValidationError({
-                    file: [error.message],
-                })
+                throw new AppError(
+                    ERROR_DEFINITIONS.INVALID_REQUEST_PAYLOAD,
+                    {
+                        file: [error.message],
+                    },
+                )
             }
 
             throw error
@@ -77,9 +81,15 @@ function filterSupportedDocument(
     const extension = extname(file.originalname).toLowerCase()
 
     if (!supportedExtensions.has(extension)) {
-        callback(new ValidationError({
-            file: ['Only .txt and .md files are supported'],
-        }), false)
+        callback(
+            new AppError(
+                ERROR_DEFINITIONS.INVALID_REQUEST_PAYLOAD,
+                {
+                    file: ['Only .txt and .md files are supported'],
+                },
+            ),
+            false,
+        )
         return
     }
 

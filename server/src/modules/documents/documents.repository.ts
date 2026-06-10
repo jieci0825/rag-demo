@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm'
 
 import { DOCUMENT_STATUS } from '../../constants/document-constants.js'
+import { ERROR_DEFINITIONS } from '../../constants/error-definitions.js'
 import { db } from '../../db/index.js'
 import { documents } from '../../db/schema.js'
-import { ConflictError } from '../../lib/errors.js'
+import { AppError } from '../../lib/errors.js'
 import { getNow } from '../../lib/time.js'
 
 import type { DocumentStatus } from '../../constants/document-constants.js'
@@ -19,7 +20,7 @@ export async function createDocument(input: NewDocument): Promise<Document> {
         return document
     } catch (error) {
         if (isContentHashUniqueViolation(error)) {
-            throw new ConflictError('Document content already exists')
+            throw new AppError(ERROR_DEFINITIONS.DOCUMENT_CONTENT_ALREADY_EXISTS)
         }
 
         throw error

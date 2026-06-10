@@ -2,7 +2,8 @@ import Router from '@koa/router'
 import Koa from 'koa'
 import bodyParser from 'koa-bodyparser'
 
-import { NotFoundError, SuccessException } from './lib/errors.js'
+import { ERROR_DEFINITIONS } from './constants/error-definitions.js'
+import { AppError, SuccessException } from './lib/errors.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { requestId } from './middleware/request-id.js'
 import { requestLogger } from './middleware/request-logger.js'
@@ -49,7 +50,7 @@ export function createApp(): Koa {
     app.use(retrievalRoutes.routes())
     app.use(retrievalRoutes.allowedMethods())
     app.use(ctx => {
-        throw new NotFoundError()
+        throw new AppError(ERROR_DEFINITIONS.ROUTE_NOT_FOUND)
     })
 
     return app

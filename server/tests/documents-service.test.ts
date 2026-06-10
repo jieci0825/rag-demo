@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ConflictError } from '../src/lib/errors.js'
+import { ERROR_DEFINITIONS } from '../src/constants/error-definitions.js'
+import { AppError } from '../src/lib/errors.js'
 import { createContentHash } from '../src/lib/hash.js'
 import {
     createFileDocument,
@@ -54,7 +55,9 @@ describe('文档内容去重', () => {
         await expect(createTextDocument({
             title: '重复文本',
             content,
-        })).rejects.toEqual(new ConflictError('Document content already exists'))
+        })).rejects.toEqual(
+            new AppError(ERROR_DEFINITIONS.DOCUMENT_CONTENT_ALREADY_EXISTS),
+        )
 
         expect(mocks.existsDocumentByContentHash).toHaveBeenCalledWith(
             createContentHash(content),
@@ -74,7 +77,9 @@ describe('文档内容去重', () => {
         mocks.existsDocumentByContentHash.mockResolvedValue(true)
 
         await expect(createFileDocument({}, file))
-            .rejects.toEqual(new ConflictError('Document content already exists'))
+            .rejects.toEqual(
+                new AppError(ERROR_DEFINITIONS.DOCUMENT_CONTENT_ALREADY_EXISTS),
+            )
 
         expect(mocks.existsDocumentByContentHash).toHaveBeenCalledWith(
             createContentHash(content),

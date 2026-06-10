@@ -1,4 +1,5 @@
-import { ValidationError } from '../lib/errors.js'
+import { ERROR_DEFINITIONS } from '../constants/error-definitions.js'
+import { AppError } from '../lib/errors.js'
 
 import type { Middleware } from 'koa'
 import type { ZodType } from 'zod'
@@ -41,7 +42,10 @@ function parseRequestPart(schema: ZodType, value: unknown): unknown {
     const result = schema.safeParse(value)
 
     if (!result.success) {
-        throw new ValidationError(result.error.flatten())
+        throw new AppError(
+            ERROR_DEFINITIONS.INVALID_REQUEST_PAYLOAD,
+            result.error.flatten(),
+        )
     }
 
     return result.data

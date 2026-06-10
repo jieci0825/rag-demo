@@ -1,4 +1,5 @@
-import { BadGatewayError } from '../../lib/errors.js'
+import { ERROR_DEFINITIONS } from '../../constants/error-definitions.js'
+import { AppError } from '../../lib/errors.js'
 import { log } from '../../lib/logger.js'
 import { createLlmProvider } from '../../rag-core/llm/index.js'
 import { createQueryLog } from '../query-logs/query-logs.repository.js'
@@ -8,11 +9,14 @@ import {
 } from './query-transform.config.js'
 import { queryTransformOutputSchema } from './retrieval.schema.js'
 
-import type { LlmProvider } from '../../rag-core/llm/index.js'
+import type { LlmMessage, LlmProvider } from '../../rag-core/llm/index.js'
 import type {
     QueryTransformOutput,
     TransformQueryBody,
 } from './retrieval.schema.js'
+
+const MAX_QUERY_TRANSFORM_RETRIES = 2
+const MAX_QUERY_TRANSFORM_ATTEMPTS = MAX_QUERY_TRANSFORM_RETRIES + 1
 
 /**
  * 使用 LLM 选择查询转换策略、生成查询，并在成功后持久化日志。
@@ -60,32 +64,90 @@ export async function transformQuery(
 }
 
 /**
- * 调用 LLM 选择并执行查询转换，将上游或输出校验错误转换为 502。
+ * 调用 LLM 生成查询转换结果，并针对 Zod 校验问题最多定向修复两次。
  */
 async function generateQueryTransform(
     query: string,
     model: string,
     llmProvider: LlmProvider
 ): Promise<QueryTransformOutput> {
-    try {
-        const output = await llmProvider.generateStructuredOutput(model, {
-            messages: [
-                {
-                    role: 'system',
-                    content: QUERY_TRANSFORM_SYSTEM_PROMPT,
-                },
-                {
-                    role: 'user',
-                    content: query,
-                },
-            ],
-            format: QUERY_TRANSFORM_FORMAT,
-        })
+    const messages: LlmMessage[] = [
+        {
+            role: 'system',
+            content: QUERY_TRANSFORM_SYSTEM_PROMPT,
+        },
+        {
+            role: 'user',
+            content: query,
+        },
+    ]
 
-        return queryTransformOutputSchema.parse(output)
-    } catch {
-        throw new BadGatewayError('Query transform service failed')
+    for (let attempt = 1; attempt <= MAX_QUERY_TRANSFORM_ATTEMPTS; attempt += 1) {
+        let output: unknown
+
+        try {
+            output = await llmProvider.generateStructuredOutput(model, {
+                messages: [...messages],
+                format: QUERY_TRANSFORM_FORMAT,
+            })
+        } catch (error) {
+            log('error', 'Query transform LLM request failed', {
+                module: 'retrieval',
+                operation: 'query-transform',
+                model,
+                attempt,
+                maxAttempts: MAX_QUERY_TRANSFORM_ATTEMPTS,
+                messages: [...messages],
+                err: error,
+            })
+            throw new AppError(ERROR_DEFINITIONS.QUERY_TRANSFORM_FAILED)
+        }
+
+        const validationResult = queryTransformOutputSchema.safeParse(output)
+
+        if (validationResult.success) {
+            return validationResult.data
+        }
+
+        const retriesRemaining = MAX_QUERY_TRANSFORM_ATTEMPTS - attempt
+
+        log(
+            retriesRemaining > 0 ? 'warn' : 'error',
+            'Query transform output validation failed',
+            {
+                module: 'retrieval',
+                operation: 'query-transform',
+                model,
+                attempt,
+                maxAttempts: MAX_QUERY_TRANSFORM_ATTEMPTS,
+                retriesRemaining,
+                messages: [...messages],
+                output,
+                zodIssues: validationResult.error.issues,
+            },
+        )
+
+        if (retriesRemaining === 0) {
+            throw new AppError(ERROR_DEFINITIONS.QUERY_TRANSFORM_FAILED)
+        }
+
+        messages.push(
+            {
+                role: 'assistant',
+                content: JSON.stringify(output),
+            },
+            {
+                role: 'user',
+                content: [
+                    '上一次输出未通过结构校验。',
+                    '请根据以下 Zod 校验问题修正，并仅返回完整的 JSON 对象：',
+                    JSON.stringify(validationResult.error.issues),
+                ].join('\n'),
+            },
+        )
     }
+
+    throw new AppError(ERROR_DEFINITIONS.QUERY_TRANSFORM_FAILED)
 }
 
 export type QueryTransformResult = QueryTransformOutput & {

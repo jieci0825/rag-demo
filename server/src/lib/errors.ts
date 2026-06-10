@@ -1,3 +1,5 @@
+import type { ErrorDefinition } from '../constants/error-definitions.js'
+
 /**
  * 表示服务端可控且可统一返回的已知异常。
  */
@@ -36,63 +38,16 @@ export class SuccessException<TData> extends KnownException {
  */
 export class AppError extends KnownException {
     /**
-     * 创建统一错误响应可识别的错误实例。
+     * 根据统一错误定义创建可识别的业务异常。
      */
-    constructor(status: number, message: string, data: unknown = null) {
-        super(status, status, message, data)
+    constructor(errorDefinition: ErrorDefinition, data: unknown = null) {
+        super(
+            errorDefinition.status,
+            errorDefinition.errorCode,
+            errorDefinition.message,
+            data,
+        )
         this.name = 'AppError'
-    }
-}
-
-/**
- * 表示请求参数校验失败。
- */
-export class ValidationError extends AppError {
-    /**
-     * 创建请求参数校验失败异常。
-     */
-    constructor(details?: unknown) {
-        super(400, 'Invalid request payload', details ?? null)
-        this.name = 'ValidationError'
-    }
-}
-
-/**
- * 表示请求与服务端现有资源发生冲突。
- */
-export class ConflictError extends AppError {
-    /**
-     * 创建资源冲突异常。
-     */
-    constructor(message: string, data: unknown = null) {
-        super(409, message, data)
-        this.name = 'ConflictError'
-    }
-}
-
-/**
- * 表示上游服务返回异常或不可用。
- */
-export class BadGatewayError extends AppError {
-    /**
-     * 创建上游服务调用失败异常。
-     */
-    constructor(message: string, data: unknown = null) {
-        super(502, message, data)
-        this.name = 'BadGatewayError'
-    }
-}
-
-/**
- * 表示请求路由不存在。
- */
-export class NotFoundError extends AppError {
-    /**
-     * 创建路由不存在异常。
-     */
-    constructor(message = 'Route not found') {
-        super(404, message)
-        this.name = 'NotFoundError'
     }
 }
 

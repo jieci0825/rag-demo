@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DrizzleQueryError } from 'drizzle-orm'
 
-import { ConflictError } from '../src/lib/errors.js'
+import { ERROR_DEFINITIONS } from '../src/constants/error-definitions.js'
+import { AppError } from '../src/lib/errors.js'
 import { createDocument } from '../src/modules/documents/documents.repository.js'
 
 const mocks = vi.hoisted(() => ({
@@ -37,7 +38,9 @@ describe('文档仓储内容去重', () => {
             sourceType: 'text',
             contentHash: createContentHashFixture(),
             status: 'pending',
-        })).rejects.toEqual(new ConflictError('Document content already exists'))
+        })).rejects.toEqual(
+            new AppError(ERROR_DEFINITIONS.DOCUMENT_CONTENT_ALREADY_EXISTS),
+        )
     })
 })
 

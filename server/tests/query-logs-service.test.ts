@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { NotFoundError } from '../src/lib/errors.js'
+import { ERROR_DEFINITIONS } from '../src/constants/error-definitions.js'
+import { AppError } from '../src/lib/errors.js'
 import {
     getQueryLogDetail,
     getQueryLogs,
@@ -68,6 +69,8 @@ describe('查询日志服务', () => {
         mocks.findQueryLogById.mockResolvedValue(undefined)
 
         await expect(getQueryLogDetail(999))
-            .rejects.toEqual(new NotFoundError('Query log not found'))
+            .rejects.toEqual(
+                new AppError(ERROR_DEFINITIONS.QUERY_LOG_NOT_FOUND),
+            )
     })
 })

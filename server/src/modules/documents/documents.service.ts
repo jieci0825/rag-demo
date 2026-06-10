@@ -5,7 +5,8 @@ import {
     DOCUMENT_SOURCE_TYPE,
     DOCUMENT_STATUS,
 } from '../../constants/document-constants.js'
-import { ConflictError } from '../../lib/errors.js'
+import { ERROR_DEFINITIONS } from '../../constants/error-definitions.js'
+import { AppError } from '../../lib/errors.js'
 import { createContentHash } from '../../lib/hash.js'
 import { log } from '../../lib/logger.js'
 import { indexDocument } from '../../rag-core/indexer/index-document.js'
@@ -165,7 +166,7 @@ export async function createFileDocument(
  */
 async function assertContentHashAvailable(contentHash: string): Promise<void> {
     if (await existsDocumentByContentHash(contentHash)) {
-        throw new ConflictError('Document content already exists')
+        throw new AppError(ERROR_DEFINITIONS.DOCUMENT_CONTENT_ALREADY_EXISTS)
     }
 }
 

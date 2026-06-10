@@ -1,4 +1,5 @@
-import { BadGatewayError } from '../../lib/errors.js'
+import { ERROR_DEFINITIONS } from '../../constants/error-definitions.js'
+import { AppError } from '../../lib/errors.js'
 import { createLlmProvider } from '../../rag-core/llm/index.js'
 
 import type {
@@ -55,7 +56,7 @@ async function requestChat(
             stream: false,
         })
     } catch {
-        throw new BadGatewayError('Chat service failed')
+        throw new AppError(ERROR_DEFINITIONS.CHAT_SERVICE_FAILED)
     }
 }
 
@@ -72,6 +73,6 @@ async function* streamChat(
             stream: true,
         })
     } catch {
-        throw new BadGatewayError('Chat service failed')
+        throw new AppError(ERROR_DEFINITIONS.CHAT_SERVICE_FAILED)
     }
 }

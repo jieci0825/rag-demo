@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { BadGatewayError } from '../src/lib/errors.js'
+import { ERROR_DEFINITIONS } from '../src/constants/error-definitions.js'
+import { AppError } from '../src/lib/errors.js'
 import { transformQuery } from '../src/modules/retrieval/retrieval.service.js'
 
 import type { LlmProvider } from '../src/rag-core/llm/index.js'
@@ -119,11 +120,12 @@ describe('查询转换服务', () => {
         })
     })
 
-    it('LLM 调用失败时返回 502 且不写日志', async () => {
+    it('LLM 调用失败时不重试并记录详细日志', async () => {
         const llmProvider = createTestLlmProvider()
+        const upstreamError = new Error('upstream failed')
 
         vi.mocked(llmProvider.generateStructuredOutput).mockRejectedValue(
-            new Error('upstream failed'),
+            upstreamError,
         )
 
         await expect(transformQuery({
@@ -131,26 +133,113 @@ describe('查询转换服务', () => {
             provider: 'deepseek',
             model: 'deepseek-v4-flash',
         }, llmProvider)).rejects.toEqual(
-            new BadGatewayError('Query transform service failed'),
+            new AppError(ERROR_DEFINITIONS.QUERY_TRANSFORM_FAILED),
         )
 
+        expect(llmProvider.generateStructuredOutput).toHaveBeenCalledTimes(1)
+        expect(mocks.log).toHaveBeenCalledWith(
+            'error',
+            'Query transform LLM request failed',
+            expect.objectContaining({
+                attempt: 1,
+                maxAttempts: 3,
+                messages: expect.any(Array),
+                err: upstreamError,
+            }),
+        )
         expect(mocks.createQueryLog).not.toHaveBeenCalled()
     })
 
-    it('LLM 返回非法结构时返回 502 且不写日志', async () => {
-        const llmProvider = createTestLlmProvider({
+    it('Zod 校验失败后携带完整对话定向修复', async () => {
+        const invalidOutput = {
             strategy: 'multi_query',
             queries: ['只有一条查询'],
+        }
+        const repairedOutput = {
+            strategy: 'multi_query',
+            queries: ['查询表达一', '查询表达二'],
+        }
+        const llmProvider = createTestLlmProvider()
+        const generateStructuredOutput = vi.mocked(
+            llmProvider.generateStructuredOutput,
+        )
+
+        generateStructuredOutput
+            .mockResolvedValueOnce(invalidOutput)
+            .mockResolvedValueOnce(repairedOutput)
+
+        await expect(transformQuery({
+            query: '原查询',
+            provider: 'deepseek',
+            model: 'deepseek-v4-flash',
+        }, llmProvider)).resolves.toEqual({
+            originalQuery: '原查询',
+            ...repairedOutput,
         })
+
+        expect(generateStructuredOutput).toHaveBeenCalledTimes(2)
+        expect(generateStructuredOutput.mock.calls[1]?.[1].messages).toEqual([
+            {
+                role: 'system',
+                content: expect.stringContaining('选择且只选择一种查询转换策略'),
+            },
+            {
+                role: 'user',
+                content: '原查询',
+            },
+            {
+                role: 'assistant',
+                content: JSON.stringify(invalidOutput),
+            },
+            {
+                role: 'user',
+                content: expect.stringMatching(/Zod 校验问题[\s\S]*queries/),
+            },
+        ])
+        expect(mocks.log).toHaveBeenCalledWith(
+            'warn',
+            'Query transform output validation failed',
+            expect.objectContaining({
+                attempt: 1,
+                retriesRemaining: 2,
+                output: invalidOutput,
+                zodIssues: expect.any(Array),
+            }),
+        )
+    })
+
+    it('连续三次未通过 Zod 校验时记录每次结果并返回统一错误', async () => {
+        const invalidOutput = {
+            strategy: 'multi_query',
+            queries: ['只有一条查询'],
+        }
+        const llmProvider = createTestLlmProvider(invalidOutput)
+        const generateStructuredOutput = vi.mocked(
+            llmProvider.generateStructuredOutput,
+        )
 
         await expect(transformQuery({
             query: '原查询',
             provider: 'deepseek',
             model: 'deepseek-v4-flash',
         }, llmProvider)).rejects.toEqual(
-            new BadGatewayError('Query transform service failed'),
+            new AppError(ERROR_DEFINITIONS.QUERY_TRANSFORM_FAILED),
         )
 
+        expect(generateStructuredOutput).toHaveBeenCalledTimes(3)
+        expect(generateStructuredOutput.mock.calls[2]?.[1].messages).toHaveLength(6)
+        expect(mocks.log).toHaveBeenNthCalledWith(
+            3,
+            'error',
+            'Query transform output validation failed',
+            expect.objectContaining({
+                attempt: 3,
+                maxAttempts: 3,
+                retriesRemaining: 0,
+                output: invalidOutput,
+                zodIssues: expect.any(Array),
+            }),
+        )
         expect(mocks.createQueryLog).not.toHaveBeenCalled()
     })
 

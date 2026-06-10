@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { BadGatewayError } from '../src/lib/errors.js'
+import { ERROR_DEFINITIONS } from '../src/constants/error-definitions.js'
+import { AppError } from '../src/lib/errors.js'
 import { chat } from '../src/modules/chat/chat-service.js'
 
 import type { LlmProvider } from '../src/rag-core/llm/index.js'
@@ -61,7 +62,9 @@ describe('聊天服务', () => {
                 content: '你好',
             }],
             stream: false,
-        }, provider)).rejects.toEqual(new BadGatewayError('Chat service failed'))
+        }, provider)).rejects.toEqual(
+            new AppError(ERROR_DEFINITIONS.CHAT_SERVICE_FAILED),
+        )
     })
 })
 
