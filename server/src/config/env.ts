@@ -11,7 +11,9 @@ const envSchema = z.object({
     OLLAMA_BASE_URL: z.string().url().default('http://localhost:11434'),
     EMBEDDING_MODEL: z.string().min(1),
     EMBEDDING_DIM: z.coerce.number().int().positive(),
-    LLM_MODEL: z.string(),
+    DEEPSEEK_BASE_URL: z.string().url().default('https://api.deepseek.com'),
+    DEEPSEEK_API_KEY: z.string().min(1),
+    DEEPSEEK_MODEL: z.string().min(1).default('deepseek-v4-flash'),
 })
 
 export const env = envSchema.parse(process.env)

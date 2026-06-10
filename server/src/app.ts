@@ -7,6 +7,8 @@ import { errorHandler } from './middleware/error-handler.js'
 import { requestId } from './middleware/request-id.js'
 import { requestLogger } from './middleware/request-logger.js'
 import { createDocumentsRoutes } from './modules/documents/documents.routes.js'
+import { createQueryLogsRoutes } from './modules/query-logs/query-logs.routes.js'
+import { createRetrievalRoutes } from './modules/retrieval/retrieval.routes.js'
 
 /**
  * 创建并组装 Koa 应用实例。
@@ -23,6 +25,8 @@ export function createApp(): Koa {
     })
 
     const documentsRoutes = createDocumentsRoutes()
+    const queryLogsRoutes = createQueryLogsRoutes()
+    const retrievalRoutes = createRetrievalRoutes()
 
     app.use(requestId())
     app.use(requestLogger())
@@ -32,6 +36,10 @@ export function createApp(): Koa {
     app.use(router.allowedMethods())
     app.use(documentsRoutes.routes())
     app.use(documentsRoutes.allowedMethods())
+    app.use(queryLogsRoutes.routes())
+    app.use(queryLogsRoutes.allowedMethods())
+    app.use(retrievalRoutes.routes())
+    app.use(retrievalRoutes.allowedMethods())
     app.use(ctx => {
         throw new NotFoundError()
     })

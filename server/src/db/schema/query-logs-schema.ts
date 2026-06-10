@@ -10,10 +10,12 @@ export const queryLogs = pgTable(
         id: serial('id').primaryKey(),
         /** 用户提交的原始查询文本。 */
         queryText: text('query_text').notNull(),
+        /** 检索前各类 query transform 策略产生的结构化结果。 */
+        queryTransforms: jsonb('query_transforms').$type<Record<string, unknown>>(),
         /** 查询文本对应的 1024 维 embedding 向量，用于排查召回质量。 */
         queryEmbedding: vector('query_embedding', { dimensions: EMBEDDING_DIMENSIONS }),
-        /** 本次查询请求的召回数量。 */
-        topK: integer('top_k').notNull(),
+        /** 本次查询请求的召回数量，尚未进入检索阶段时为空。 */
+        topK: integer('top_k'),
         /** 本次查询召回结果快照，记录命中的 chunks 和相关信息。 */
         retrievedChunks: jsonb('retrieved_chunks').$type<unknown[]>(),
         /** 本次查询链路耗时，单位为毫秒。 */

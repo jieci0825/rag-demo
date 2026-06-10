@@ -71,6 +71,19 @@ export class ConflictError extends AppError {
 }
 
 /**
+ * 表示上游服务返回异常或不可用。
+ */
+export class BadGatewayError extends AppError {
+    /**
+     * 创建上游服务调用失败异常。
+     */
+    constructor(message: string, data: unknown = null) {
+        super(502, message, data)
+        this.name = 'BadGatewayError'
+    }
+}
+
+/**
  * 表示请求路由不存在。
  */
 export class NotFoundError extends AppError {
