@@ -10,6 +10,10 @@ import { transformQueryBodySchema } from './retrieval.schema.js'
 export function createRetrievalRoutes(): Router {
     const router = new Router()
 
+    /**
+     * 改写用户查询以用于知识库检索
+     * POST /api/retrieval/query-transform
+     */
     router.post(
         '/api/retrieval/query-transform',
         validateRequest({ body: transformQueryBodySchema }),

@@ -16,12 +16,20 @@ import {
 export function createQueryLogsRoutes(): Router {
     const router = new Router()
 
+    /**
+     * 分页获取查询日志列表
+     * GET /api/query-logs
+     */
     router.get(
         '/api/query-logs',
         validateRequest({ query: queryLogsListQuerySchema }),
         getQueryLogsController,
     )
 
+    /**
+     * 查询单条查询日志详情
+     * GET /api/query-logs/:id
+     */
     router.get(
         '/api/query-logs/:id',
         validateRequest({ params: queryLogParamsSchema }),

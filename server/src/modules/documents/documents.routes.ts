@@ -16,6 +16,7 @@ export function createDocumentsRoutes(): Router {
 
     /**
      * 接受纯文本内容并创建文档
+     * POST /api/documents/text
      */
     router.post(
         '/api/documents/text',
@@ -25,6 +26,7 @@ export function createDocumentsRoutes(): Router {
 
     /**
      * 上传文件并创建文档
+     * POST /api/documents/file
      */
     router.post(
         '/api/documents/file',

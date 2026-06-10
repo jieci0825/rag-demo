@@ -17,6 +17,10 @@ export function createApp(): Koa {
     const app = new Koa()
     const router = new Router()
 
+    /**
+     * 检查服务与数据库的健康状态
+     * GET /health
+     */
     router.get('/health', ctx => {
         throw new SuccessException({
             status: 'ok',
