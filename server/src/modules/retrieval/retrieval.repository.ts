@@ -9,6 +9,7 @@ export interface RetrievalCandidate {
     documentId: number
     chunkIndex: number
     content: string
+    searchText: string
     metadata: Record<string, unknown> | null
     score: number
 }
@@ -18,6 +19,7 @@ const candidateFields = {
     documentId: documentChunks.documentId,
     chunkIndex: documentChunks.chunkIndex,
     content: documentChunks.content,
+    searchText: documentChunks.searchText,
     metadata: documentChunks.metadata,
 }
 

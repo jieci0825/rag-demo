@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 *.local
+.pytest_cache/
+.venv/
+__pycache__/
 server/.env
 server/uploads/
 pnpm-lock.yaml

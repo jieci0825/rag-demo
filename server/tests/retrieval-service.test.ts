@@ -20,6 +20,10 @@ vi.mock('../src/rag-core/embeddings/qwen-embedding.provider.js', () => ({
     createQwenEmbeddingProvider: vi.fn(),
 }))
 
+vi.mock('../src/rag-core/rerankers/index.js', () => ({
+    createHttpRerankerProvider: vi.fn(),
+}))
+
 vi.mock('../src/modules/retrieval/retrieval.repository.js', () => ({
     searchChunksByKeyword: vi.fn(),
     searchChunksByVector: vi.fn(),

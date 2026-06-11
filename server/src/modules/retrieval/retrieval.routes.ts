@@ -27,7 +27,7 @@ export function createRetrievalRoutes(): Router {
     )
 
     /**
-     * 执行查询转换、混合召回和 RRF 结果融合
+     * 执行查询转换、混合召回、RRF 融合和 Cross-Encoder 重排
      * POST /api/retrieval/search
      */
     router.post(

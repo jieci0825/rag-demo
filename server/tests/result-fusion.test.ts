@@ -124,6 +124,7 @@ function createCandidate(
         documentId: 1,
         chunkIndex: chunkId - 1,
         content: `chunk-${chunkId}`,
+        searchText: `chunk-${chunkId}`,
         metadata: null,
         score,
     }

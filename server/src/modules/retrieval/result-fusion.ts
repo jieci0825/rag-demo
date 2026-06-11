@@ -23,6 +23,7 @@ export interface FusedRetrievalResult {
     documentId: number
     chunkIndex: number
     content: string
+    searchText: string
     metadata: Record<string, unknown> | null
     rrfScore: number
     matches: RetrievalMatch[]
@@ -59,6 +60,7 @@ export function fuseRankedResults(
                 documentId: candidate.documentId,
                 chunkIndex: candidate.chunkIndex,
                 content: candidate.content,
+                searchText: candidate.searchText,
                 metadata: candidate.metadata,
                 rrfScore,
                 matches: [match],
@@ -70,12 +72,13 @@ export function fuseRankedResults(
 }
 
 /**
- * 按查询转换策略选择最终 Top K 结果。
+ * 按查询转换策略选择指定数量的 RRF 候选。
  *
  * none、rewrite、expand 和 multi_query 的多条查询仍表达同一检索意图，
  * 可以直接按全局 RRF 分数截取。decomposition 的查询分别代表不同子问题，
- * 如果直接全局截取，高分子问题可能占满结果，因此先为每个子问题保留一个
- * 未重复 chunk，再按全局 RRF 排名补齐剩余名额。
+ * 如果直接全局截取，高分子问题可能占满候选，因此先为每个子问题保留一个
+ * 未重复 chunk，再按全局 RRF 排名补齐剩余名额。该函数既用于生成重排候选，
+ * 也用于 Reranker 不可用时选择降级结果。
  */
 export function selectFusedResults(
     strategy: QueryTransformOutput['strategy'],
@@ -84,7 +87,7 @@ export function selectFusedResults(
 ): FusedRetrievalResult[] {
     const fusedResults = fuseRankedResults(rankedLists)
 
-    // 除开 decomposition 策略之外，其他策略只需要单纯按照 RRF 分数截取前 K 即可，无需考虑不同查询之间的覆盖问题。
+    // 其他策略表达同一意图，不需要额外保证不同查询之间的候选覆盖。
     if (strategy !== 'decomposition') {
         return fusedResults.slice(0, topK)
     }

@@ -3,6 +3,7 @@ import { AppError } from '../../lib/errors.js'
 import { log } from '../../lib/logger.js'
 import { createQwenEmbeddingProvider } from '../../rag-core/embeddings/qwen-embedding.provider.js'
 import { createLlmProvider } from '../../rag-core/llm/index.js'
+import { createHttpRerankerProvider } from '../../rag-core/rerankers/index.js'
 import { createQueryLog } from '../query-logs/query-logs.repository.js'
 import {
     QUERY_TRANSFORM_FORMAT,
@@ -14,10 +15,16 @@ import {
 } from './retrieval.repository.js'
 import { queryTransformOutputSchema } from './retrieval.schema.js'
 import { selectFusedResults } from './result-fusion.js'
+import {
+    selectRerankedResults,
+    toRrfResults,
+} from './result-reranking.js'
 
 import type { EmbeddingProvider } from '../../rag-core/embeddings/embedding.provider.js'
 import type { LlmMessage, LlmProvider } from '../../rag-core/llm/index.js'
+import type { RerankerProvider } from '../../rag-core/rerankers/index.js'
 import type { RankedRetrievalList } from './result-fusion.js'
+import type { RetrievalResult } from './result-reranking.js'
 import type {
     QueryTransformOutput,
     SearchKnowledgeBaseBody,
@@ -74,12 +81,13 @@ export async function transformQuery(
 }
 
 /**
- * 对转换后的查询执行向量和关键词召回，并使用 RRF 返回融合结果。
+ * 对转换后的查询执行混合召回、RRF 候选融合和 Cross-Encoder 重排。
  */
 export async function searchKnowledgeBase(
     input: SearchKnowledgeBaseBody,
     llmProvider = createLlmProvider(input.provider),
     embeddingProvider = createQwenEmbeddingProvider(),
+    rerankerProvider = createHttpRerankerProvider(),
 ): Promise<SearchKnowledgeBaseResult> {
     const startedAt = Date.now()
     const normalizedQuery = input.query.trim()
@@ -120,10 +128,18 @@ export async function searchKnowledgeBase(
         }),
     )
     const rankedLists = queryRankedLists.flat()
-    const results = selectFusedResults(
+    const candidates = selectFusedResults(
         transformOutput.strategy,
         rankedLists,
+        candidateLimit,
+    )
+    const rerankOutcome = await rerankCandidates(
+        transformOutput.strategy,
+        queries,
+        candidates,
+        rankedLists,
         input.topK,
+        rerankerProvider,
     )
     const latencyMs = Date.now() - startedAt
 
@@ -132,7 +148,7 @@ export async function searchKnowledgeBase(
         queryTransforms: transformOutput,
         queryEmbedding: embeddings[0] ?? null,
         topK: input.topK,
-        retrievedChunks: results,
+        retrievedChunks: rerankOutcome.results,
         latencyMs,
     })
 
@@ -144,7 +160,9 @@ export async function searchKnowledgeBase(
         strategy: transformOutput.strategy,
         transformedQueryCount: queries.length,
         rankedListCount: rankedLists.length,
-        resultCount: results.length,
+        candidateCount: candidates.length,
+        resultCount: rerankOutcome.results.length,
+        rerankApplied: rerankOutcome.applied,
         topK: input.topK,
         durationMs: latencyMs,
     })
@@ -153,7 +171,8 @@ export async function searchKnowledgeBase(
         originalQuery: input.query,
         ...transformOutput,
         topK: input.topK,
-        results,
+        rerankApplied: rerankOutcome.applied,
+        results: rerankOutcome.results,
     }
 }
 
@@ -264,11 +283,75 @@ function getUniqueQueries(queries: string[]): string[] {
     return [...new Set(queries)]
 }
 
+/**
+ * 调用 Cross-Encoder 重排候选，失败时按原有 RRF 规则降级。
+ */
+async function rerankCandidates(
+    strategy: QueryTransformOutput['strategy'],
+    queries: string[],
+    candidates: ReturnType<typeof selectFusedResults>,
+    rankedLists: RankedRetrievalList[],
+    topK: number,
+    rerankerProvider: RerankerProvider,
+): Promise<RerankOutcome> {
+    if (candidates.length === 0) {
+        return {
+            applied: false,
+            results: [],
+        }
+    }
+
+    try {
+        const rerankResult = await rerankerProvider.rerank({
+            queries,
+            documents: candidates.map(candidate => ({
+                chunkId: candidate.chunkId,
+                text: candidate.searchText,
+            })),
+        })
+
+        return {
+            applied: true,
+            results: selectRerankedResults(
+                strategy,
+                queries,
+                candidates,
+                rerankResult,
+                topK,
+            ),
+        }
+    } catch (error) {
+        // Reranker 不影响基础检索可用性，记录失败上下文后回退到 RRF。
+        log('warn', 'Reranker request failed, using RRF results', {
+            module: 'retrieval',
+            operation: 'rerank',
+            strategy,
+            queryCount: queries.length,
+            candidateCount: candidates.length,
+            topK,
+            err: error,
+        })
+
+        return {
+            applied: false,
+            results: toRrfResults(
+                selectFusedResults(strategy, rankedLists, topK),
+            ),
+        }
+    }
+}
+
 export type QueryTransformResult = QueryTransformOutput & {
     originalQuery: string
 }
 
 export type SearchKnowledgeBaseResult = QueryTransformResult & {
     topK: number
-    results: ReturnType<typeof selectFusedResults>
+    rerankApplied: boolean
+    results: RetrievalResult[]
+}
+
+interface RerankOutcome {
+    applied: boolean
+    results: RetrievalResult[]
 }
