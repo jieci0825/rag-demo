@@ -1,13 +1,7 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { RouterView } from 'vue-router'
+</script>
 
 <template>
-    <div class="container">
-        <h1>hello rag</h1>
-    </div>
+    <RouterView />
 </template>
-
-<style scoped lang="scss">
-.container {
-    width: 100%;
-}
-</style>
