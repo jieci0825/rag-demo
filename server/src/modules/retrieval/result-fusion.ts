@@ -32,7 +32,7 @@ export interface FusedRetrievalResult {
  * 使用 RRF 按 chunk ID 合并多路排名，并保留每次命中的来源信息。
  */
 export function fuseRankedResults(
-    rankedLists: RankedRetrievalList[],
+    rankedLists: RankedRetrievalList[]
 ): FusedRetrievalResult[] {
     const fusedResults = new Map<number, FusedRetrievalResult>()
 
@@ -70,15 +70,21 @@ export function fuseRankedResults(
 }
 
 /**
- * 按查询转换策略截取最终结果，拆解查询会优先覆盖不同子问题。
+ * 按查询转换策略选择最终 Top K 结果。
+ *
+ * none、rewrite、expand 和 multi_query 的多条查询仍表达同一检索意图，
+ * 可以直接按全局 RRF 分数截取。decomposition 的查询分别代表不同子问题，
+ * 如果直接全局截取，高分子问题可能占满结果，因此先为每个子问题保留一个
+ * 未重复 chunk，再按全局 RRF 排名补齐剩余名额。
  */
 export function selectFusedResults(
     strategy: QueryTransformOutput['strategy'],
     rankedLists: RankedRetrievalList[],
-    topK: number,
+    topK: number
 ): FusedRetrievalResult[] {
     const fusedResults = fuseRankedResults(rankedLists)
 
+    // 除开 decomposition 策略之外，其他策略只需要单纯按照 RRF 分数截取前 K 即可，无需考虑不同查询之间的覆盖问题。
     if (strategy !== 'decomposition') {
         return fusedResults.slice(0, topK)
     }
@@ -103,10 +109,12 @@ export function selectFusedResults(
  */
 function selectDecompositionChunkIds(
     rankedLists: RankedRetrievalList[],
-    topK: number,
+    topK: number
 ): Set<number> {
     const selectedChunkIds = new Set<number>()
-    const queries = [...new Set(rankedLists.map(rankedList => rankedList.query))]
+    const queries = [
+        ...new Set(rankedLists.map(rankedList => rankedList.query)),
+    ]
 
     for (const query of queries) {
         if (selectedChunkIds.size >= topK) {
@@ -114,10 +122,10 @@ function selectDecompositionChunkIds(
         }
 
         const queryResults = fuseRankedResults(
-            rankedLists.filter(rankedList => rankedList.query === query),
+            rankedLists.filter(rankedList => rankedList.query === query)
         )
         const candidate = queryResults.find(
-            result => !selectedChunkIds.has(result.chunkId),
+            result => !selectedChunkIds.has(result.chunkId)
         )
 
         if (candidate) {
@@ -133,7 +141,7 @@ function selectDecompositionChunkIds(
  */
 function compareFusedResults(
     left: FusedRetrievalResult,
-    right: FusedRetrievalResult,
+    right: FusedRetrievalResult
 ): number {
     return right.rrfScore - left.rrfScore || left.chunkId - right.chunkId
 }
