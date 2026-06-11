@@ -1,22 +1,32 @@
 import { ERROR_DEFINITIONS } from '../../constants/error-definitions.js'
 import { AppError } from '../../lib/errors.js'
 import { log } from '../../lib/logger.js'
+import { createQwenEmbeddingProvider } from '../../rag-core/embeddings/qwen-embedding.provider.js'
 import { createLlmProvider } from '../../rag-core/llm/index.js'
 import { createQueryLog } from '../query-logs/query-logs.repository.js'
 import {
     QUERY_TRANSFORM_FORMAT,
     QUERY_TRANSFORM_SYSTEM_PROMPT,
 } from './query-transform.config.js'
+import {
+    searchChunksByKeyword,
+    searchChunksByVector,
+} from './retrieval.repository.js'
 import { queryTransformOutputSchema } from './retrieval.schema.js'
+import { selectFusedResults } from './result-fusion.js'
 
+import type { EmbeddingProvider } from '../../rag-core/embeddings/embedding.provider.js'
 import type { LlmMessage, LlmProvider } from '../../rag-core/llm/index.js'
+import type { RankedRetrievalList } from './result-fusion.js'
 import type {
     QueryTransformOutput,
+    SearchKnowledgeBaseBody,
     TransformQueryBody,
 } from './retrieval.schema.js'
 
 const MAX_QUERY_TRANSFORM_RETRIES = 2
 const MAX_QUERY_TRANSFORM_ATTEMPTS = MAX_QUERY_TRANSFORM_RETRIES + 1
+const MIN_RETRIEVAL_CANDIDATE_LIMIT = 20
 
 /**
  * 使用 LLM 选择查询转换策略、生成查询，并在成功后持久化日志。
@@ -60,6 +70,90 @@ export async function transformQuery(
     return {
         originalQuery: input.query,
         ...transformOutput,
+    }
+}
+
+/**
+ * 对转换后的查询执行向量和关键词召回，并使用 RRF 返回融合结果。
+ */
+export async function searchKnowledgeBase(
+    input: SearchKnowledgeBaseBody,
+    llmProvider = createLlmProvider(input.provider),
+    embeddingProvider = createQwenEmbeddingProvider(),
+): Promise<SearchKnowledgeBaseResult> {
+    const startedAt = Date.now()
+    const normalizedQuery = input.query.trim()
+
+    // 查询转换只在当前链路中执行，不额外写入仅包含转换阶段的日志。
+    const transformOutput = await generateQueryTransform(
+        normalizedQuery,
+        input.model,
+        llmProvider,
+    )
+    const queries = getUniqueQueries(transformOutput.queries)
+    const embeddings = await embeddingProvider.embedTexts(queries)
+    const candidateLimit = Math.max(
+        MIN_RETRIEVAL_CANDIDATE_LIMIT,
+        input.topK,
+    )
+
+    // 每条转换查询分别并行执行两种召回，所有排名列表交由统一融合逻辑处理。
+    const queryRankedLists = await Promise.all(
+        queries.map(async (query, index): Promise<RankedRetrievalList[]> => {
+            const [vectorResults, keywordResults] = await Promise.all([
+                searchChunksByVector(embeddings[index], candidateLimit),
+                searchChunksByKeyword(query, candidateLimit),
+            ])
+
+            return [
+                {
+                    query,
+                    channel: 'vector',
+                    results: vectorResults,
+                },
+                {
+                    query,
+                    channel: 'keyword',
+                    results: keywordResults,
+                },
+            ]
+        }),
+    )
+    const rankedLists = queryRankedLists.flat()
+    const results = selectFusedResults(
+        transformOutput.strategy,
+        rankedLists,
+        input.topK,
+    )
+    const latencyMs = Date.now() - startedAt
+
+    await createQueryLog({
+        queryText: input.query,
+        queryTransforms: transformOutput,
+        queryEmbedding: embeddings[0] ?? null,
+        topK: input.topK,
+        retrievedChunks: results,
+        latencyMs,
+    })
+
+    log('info', 'Hybrid retrieval completed', {
+        module: 'retrieval',
+        operation: 'hybrid-search',
+        provider: input.provider,
+        model: input.model,
+        strategy: transformOutput.strategy,
+        transformedQueryCount: queries.length,
+        rankedListCount: rankedLists.length,
+        resultCount: results.length,
+        topK: input.topK,
+        durationMs: latencyMs,
+    })
+
+    return {
+        originalQuery: input.query,
+        ...transformOutput,
+        topK: input.topK,
+        results,
     }
 }
 
@@ -163,6 +257,18 @@ async function generateQueryTransform(
     throw new AppError(ERROR_DEFINITIONS.QUERY_TRANSFORM_FAILED)
 }
 
+/**
+ * 按首次出现顺序移除重复查询，避免重复召回被 RRF 重复加权。
+ */
+function getUniqueQueries(queries: string[]): string[] {
+    return [...new Set(queries)]
+}
+
 export type QueryTransformResult = QueryTransformOutput & {
     originalQuery: string
+}
+
+export type SearchKnowledgeBaseResult = QueryTransformResult & {
+    topK: number
+    results: ReturnType<typeof selectFusedResults>
 }

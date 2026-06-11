@@ -1,8 +1,14 @@
 import Router from '@koa/router'
 
 import { validateRequest } from '../../middleware/validate.js'
-import { transformQueryController } from './retrieval.controller.js'
-import { transformQueryBodySchema } from './retrieval.schema.js'
+import {
+    searchKnowledgeBaseController,
+    transformQueryController,
+} from './retrieval.controller.js'
+import {
+    searchKnowledgeBaseBodySchema,
+    transformQueryBodySchema,
+} from './retrieval.schema.js'
 
 /**
  * 创建 retrieval 模块路由。
@@ -18,6 +24,16 @@ export function createRetrievalRoutes(): Router {
         '/api/retrieval/query-transform',
         validateRequest({ body: transformQueryBodySchema }),
         transformQueryController,
+    )
+
+    /**
+     * 执行查询转换、混合召回和 RRF 结果融合
+     * POST /api/retrieval/search
+     */
+    router.post(
+        '/api/retrieval/search',
+        validateRequest({ body: searchKnowledgeBaseBodySchema }),
+        searchKnowledgeBaseController,
     )
 
     return router

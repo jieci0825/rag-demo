@@ -81,6 +81,7 @@ describe('文档索引日志流程', () => {
             documentId: 1,
             chunkIndex: 0,
             content: 'content',
+            searchText: 'content',
             embedding: [0.1, 0.2],
             tokenCount: null,
             charCount: 7,

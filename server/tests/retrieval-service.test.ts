@@ -16,6 +16,15 @@ vi.mock('../src/rag-core/llm/index.js', () => ({
     createLlmProvider: mocks.createLlmProvider,
 }))
 
+vi.mock('../src/rag-core/embeddings/qwen-embedding.provider.js', () => ({
+    createQwenEmbeddingProvider: vi.fn(),
+}))
+
+vi.mock('../src/modules/retrieval/retrieval.repository.js', () => ({
+    searchChunksByKeyword: vi.fn(),
+    searchChunksByVector: vi.fn(),
+}))
+
 vi.mock('../src/modules/query-logs/query-logs.repository.js', () => ({
     createQueryLog: mocks.createQueryLog,
 }))

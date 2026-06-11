@@ -93,6 +93,7 @@ export async function indexDocument(
             documentId: input.documentId,
             chunkIndex,
             content: chunk.content,
+            searchText: embeddingTexts[chunkIndex],
             embedding: embeddings[chunkIndex],
             tokenCount: null,
             charCount: chunk.charCount,

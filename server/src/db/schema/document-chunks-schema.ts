@@ -14,6 +14,8 @@ export const documentChunks = pgTable(
         chunkIndex: integer('chunk_index').notNull(),
         /** chunk 原始文本内容，用于召回后组装上下文。 */
         content: text('content').notNull(),
+        /** 标题路径和正文组成的检索文本，供关键词检索使用。 */
+        searchText: text('search_text').notNull(),
         /** chunk 文本对应的 1024 维 embedding 向量，用于 pgvector 相似度检索。 */
         embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }).notNull(),
         /** chunk 的 token 数量，无法统计时为空。 */
@@ -27,6 +29,10 @@ export const documentChunks = pgTable(
     },
     table => [
         index('idx_document_chunks_document_id').on(table.documentId),
+        index('idx_document_chunks_search_text_trgm').using(
+            'gin',
+            table.searchText.op('gin_trgm_ops'),
+        ),
         uniqueIndex('uniq_document_chunks_document_id_chunk_index').on(table.documentId, table.chunkIndex),
     ],
 )

@@ -29,6 +29,13 @@
       "when": 1781059068450,
       "tag": "0003-add-query-transforms",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781144653556,
+      "tag": "0004_add-hybrid-search",
+      "breakpoints": true
     }
   ]
 }

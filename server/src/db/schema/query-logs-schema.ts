@@ -12,7 +12,7 @@ export const queryLogs = pgTable(
         queryText: text('query_text').notNull(),
         /** 检索前各类 query transform 策略产生的结构化结果。 */
         queryTransforms: jsonb('query_transforms').$type<Record<string, unknown>>(),
-        /** 查询文本对应的 1024 维 embedding 向量，用于排查召回质量。 */
+        /** 首条实际检索 query 的 1024 维 embedding，用于排查召回质量。 */
         queryEmbedding: vector('query_embedding', { dimensions: EMBEDDING_DIMENSIONS }),
         /** 本次查询请求的召回数量，尚未进入检索阶段时为空。 */
         topK: integer('top_k'),

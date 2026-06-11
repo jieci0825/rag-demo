@@ -8,6 +8,10 @@ export const transformQueryBodySchema = z.object({
     model: z.string().trim().min(1),
 })
 
+export const searchKnowledgeBaseBodySchema = transformQueryBodySchema.extend({
+    topK: z.number().int().min(1).max(50).default(5),
+})
+
 const querySchema = z.string().trim().min(1)
 
 export const queryTransformOutputSchema = z.discriminatedUnion('strategy', [
@@ -34,4 +38,5 @@ export const queryTransformOutputSchema = z.discriminatedUnion('strategy', [
 ])
 
 export type TransformQueryBody = z.infer<typeof transformQueryBodySchema>
+export type SearchKnowledgeBaseBody = z.infer<typeof searchKnowledgeBaseBodySchema>
 export type QueryTransformOutput = z.infer<typeof queryTransformOutputSchema>

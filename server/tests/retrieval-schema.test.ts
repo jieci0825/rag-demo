@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
     queryTransformOutputSchema,
+    searchKnowledgeBaseBodySchema,
     transformQueryBodySchema,
 } from '../src/modules/retrieval/retrieval.schema.js'
 
@@ -43,6 +44,27 @@ describe('查询转换请求校验', () => {
             query: '有效查询',
             provider: 'deepseek',
             model: '',
+        })).toThrow()
+    })
+})
+
+describe('混合检索请求校验', () => {
+    it('未提供 topK 时使用默认值', () => {
+        const result = searchKnowledgeBaseBodySchema.parse({
+            query: '退款流程',
+            provider: 'deepseek',
+            model: 'deepseek-v4-flash',
+        })
+
+        expect(result.topK).toBe(5)
+    })
+
+    it.each([0, 51, 1.5])('拒绝非法 topK：%s', (topK) => {
+        expect(() => searchKnowledgeBaseBodySchema.parse({
+            query: '退款流程',
+            provider: 'deepseek',
+            model: 'deepseek-v4-flash',
+            topK,
         })).toThrow()
     })
 })
