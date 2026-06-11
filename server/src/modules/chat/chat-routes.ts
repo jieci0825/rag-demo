@@ -11,7 +11,7 @@ export function createChatRoutes(): Router {
     const router = new Router()
 
     /**
-     * 使用指定模型执行聊天，支持普通 JSON 与 JSON SSE 响应
+     * 根据对话历史和检索资料执行知识库聊天，支持普通 JSON 与 JSON SSE 响应
      * POST /api/chat
      */
     router.post(

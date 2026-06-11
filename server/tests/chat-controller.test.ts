@@ -58,6 +58,11 @@ function createContext(): Context {
                         role: 'user',
                         content: '你好',
                     }],
+                    context: [{
+                        chunkId: 1,
+                        headingPath: [],
+                        content: '日志内容',
+                    }],
                     stream: true,
                 },
             },

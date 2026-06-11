@@ -9,7 +9,7 @@ import type { ChatChunk } from '../../rag-core/llm/index.js'
 import type { ChatBody } from './chat-schema.js'
 
 /**
- * 使用指定模型执行聊天，支持普通 JSON 与 JSON SSE 响应
+ * 根据对话历史和检索资料执行知识库聊天，支持普通 JSON 与 JSON SSE 响应
  * POST /api/chat
  */
 export async function chatController(ctx: Context): Promise<void> {
