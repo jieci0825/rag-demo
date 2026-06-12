@@ -1,8 +1,10 @@
 import { createRequest } from '@coderjc/reqflow'
 import { fetchAdapter } from '@coderjc/reqflow/adapters/fetch'
 import { errorPlugin } from '@coderjc/reqflow/plugins'
+import { parseResponse } from './parse-response.plugin'
 
 const request = createRequest({
+    baseURL: 'http://localhost:7748/api',
     adapter: fetchAdapter(),
     plugins: [
         errorPlugin({
@@ -10,9 +12,10 @@ const request = createRequest({
             onError: error => {
                 console.error('Request error:', error)
 
-                // throw new Error(error.message)
+                throw new Error(error.message)
             },
         }),
+        parseResponse(),
     ],
 })
 
