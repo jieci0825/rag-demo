@@ -57,7 +57,7 @@ export async function streamChat(
     onEvent: (event: ChatStreamEvent) => void,
     signal?: AbortSignal
 ): Promise<void> {
-    const response = await fetch('/api/chat', {
+    const response = await fetch('http://localhost:7748/api/chat', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
