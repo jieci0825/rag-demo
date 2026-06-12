@@ -1,3 +1,4 @@
+import cors from '@koa/cors'
 import Router from '@koa/router'
 import Koa from 'koa'
 import bodyParser from 'koa-bodyparser'
@@ -35,6 +36,7 @@ export function createApp(): Koa {
     const queryLogsRoutes = createQueryLogsRoutes()
     const retrievalRoutes = createRetrievalRoutes()
 
+    app.use(cors())
     app.use(requestId())
     app.use(requestLogger())
     app.use(errorHandler())

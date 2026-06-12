@@ -13,6 +13,7 @@
         "db:migrate": "drizzle-kit migrate"
     },
     "dependencies": {
+        "@koa/cors": "^5.0.0",
         "@koa/multer": "4.0.0",
         "@koa/router": "latest",
         "dotenv": "latest",
@@ -28,6 +29,7 @@
     "devDependencies": {
         "@types/koa": "latest",
         "@types/koa-bodyparser": "latest",
+        "@types/koa__cors": "^5.0.1",
         "@types/koa__multer": "2.0.8",
         "@types/koa__router": "latest",
         "@types/multer": "2.0.0",
