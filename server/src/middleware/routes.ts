@@ -16,9 +16,9 @@ export function routes(): RouterMiddleware {
 
     /**
      * 检查服务与数据库的健康状态
-     * GET /health
+     * GET /api/health
      */
-    router.get('/health', ctx => {
+    router.get('/api/health', ctx => {
         throw new SuccessException({
             status: 'ok',
             database: 'ok',
