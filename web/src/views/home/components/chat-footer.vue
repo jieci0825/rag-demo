@@ -1,52 +1,98 @@
 <template>
     <footer class="chat-footer">
-        <div class="chat-input-wrapper box">
-            <div class="chat-input">输入区域</div>
-            <div class="send-button box">发送</div>
+        <div class="composer">
+            <textarea
+                class="composer-input"
+                rows="2"
+                placeholder="输入你的问题，按 Enter 发送"
+                aria-label="消息内容"
+            ></textarea>
+
+            <button class="send-button" type="button" aria-label="发送消息">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m4 4 17 8-17 8 3-8-3-8Z" />
+                    <path d="M7 12h14" />
+                </svg>
+            </button>
         </div>
-        <div class="answer-notice box">回答提示区域</div>
     </footer>
 </template>
 
 <style scoped>
-.box {
-    border: 1px solid var(--color-border);
-}
-
 .chat-footer {
     display: flex;
-    min-height: 128px;
+    height: 144px;
+    flex: 0 0 144px;
     align-items: center;
     flex-direction: column;
-    justify-content: center;
-    gap: 8px;
     padding: 16px 32px;
-    border: 1px solid var(--color-border);
+    border-top: 1px solid var(--color-border);
     background: var(--color-surface);
 }
 
-.chat-input-wrapper {
+.composer {
     display: flex;
     width: min(900px, 100%);
-    min-height: 64px;
-    align-items: center;
-    padding: 8px;
+    height: 100%;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid var(--color-border-strong);
+    background: var(--color-surface);
 }
 
-.chat-input {
+.composer:focus-within {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.composer-input {
+    min-width: 0;
+    height: 100%;
     flex: 1;
-    padding: 12px;
+    padding: 2px;
+    resize: none;
+    color: var(--color-text-primary);
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.composer-input::placeholder {
+    color: var(--color-text-muted);
 }
 
 .send-button {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    place-items: center;
     color: var(--color-text-inverse);
-    border-color: var(--color-accent);
+    border: 0;
     background: var(--color-accent);
-    padding: 12px 20px;
+    cursor: pointer;
 }
 
-.answer-notice {
-    color: var(--color-text-secondary);
-    padding: 6px 16px;
+.send-button:hover {
+    background: var(--color-accent-hover);
 }
+
+.send-button:active {
+    background: var(--color-accent-active);
+}
+
+.send-button svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+}
+
 </style>

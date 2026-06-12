@@ -34,7 +34,7 @@ import ChatSidebar from './components/chat-sidebar.vue'
     flex: 1;
     flex-direction: column;
     gap: 8px;
-    border: 2px solid var(--color-border-strong);
+    border: 1px solid var(--color-border-strong);
     background: var(--color-surface);
 }
 </style>
