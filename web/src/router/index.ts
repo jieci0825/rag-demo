@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import DocumentsView from '../views/documents-view.vue'
-import HomeView from '../views/home-view.vue'
+import HomeView from '../views/home/index.vue'
 
 export const router = createRouter({
     history: createWebHistory(),
