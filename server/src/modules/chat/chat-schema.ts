@@ -18,7 +18,7 @@ const chatBodyBaseSchema = z.object({
         messages => messages.at(-1)?.role === 'user',
         { message: 'last message must be a user message' },
     ),
-    context: z.array(chatContextSchema).min(1),
+    context: z.array(chatContextSchema),
 })
 
 export const chatBodySchema = z.discriminatedUnion('stream', [

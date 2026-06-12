@@ -93,8 +93,8 @@ describe('聊天请求校验', () => {
         })).toThrow()
     })
 
-    it('拒绝空的检索资料', () => {
-        expect(() => chatBodySchema.parse({
+    it('接受空的检索资料', () => {
+        const result = chatBodySchema.parse({
             provider: 'deepseek',
             model: 'deepseek-v4-flash',
             messages: [{
@@ -103,6 +103,8 @@ describe('聊天请求校验', () => {
             }],
             context: [],
             stream: false,
-        })).toThrow()
+        })
+
+        expect(result.context).toEqual([])
     })
 })

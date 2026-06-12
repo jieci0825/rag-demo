@@ -15,7 +15,12 @@ import type {
     StreamingChatBody,
 } from './chat-schema.js'
 
-const CHAT_SYSTEM_PROMPT = `你是知识库问答助手。
+const GENERAL_CHAT_SYSTEM_PROMPT = `你是一个友好、准确的 AI 助手。
+- 清晰、直接地回答用户的问题。
+- 不确定的信息要明确说明，不得编造。
+- 使用用户提问所使用的语言回答。`
+
+const KNOWLEDGE_CHAT_SYSTEM_PROMPT = `你是知识库问答助手。
 - 只能根据本轮提供的知识库资料回答问题，对话历史仅用于理解上下文和指代关系。
 - 如果知识库资料不足以回答，明确说明无法从当前资料确认，不得编造。
 - 回答时使用 [资料1]、[资料2] 这样的标记注明依据。
@@ -87,7 +92,7 @@ async function* streamChat(
 }
 
 /**
- * 注入服务端系统提示词，并将本轮检索资料附加到最后一条用户消息。
+ * 根据是否存在检索资料选择对话模式，并注入对应的系统提示词。
  */
 function buildChatMessages(input: ChatBody): LlmMessage[] {
     const messages = [...input.messages]
@@ -95,6 +100,16 @@ function buildChatMessages(input: ChatBody): LlmMessage[] {
 
     if (!currentMessage || currentMessage.role !== 'user') {
         throw new AppError(ERROR_DEFINITIONS.INVALID_REQUEST_PAYLOAD)
+    }
+
+    if (input.context.length === 0) {
+        return [
+            {
+                role: 'system',
+                content: GENERAL_CHAT_SYSTEM_PROMPT,
+            },
+            ...messages,
+        ]
     }
 
     messages[messages.length - 1] = {
@@ -109,7 +124,7 @@ function buildChatMessages(input: ChatBody): LlmMessage[] {
     return [
         {
             role: 'system',
-            content: CHAT_SYSTEM_PROMPT,
+            content: KNOWLEDGE_CHAT_SYSTEM_PROMPT,
         },
         ...messages,
     ]
