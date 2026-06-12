@@ -1,14 +1,51 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const props = defineProps<{
+    disabled: boolean
+}>()
+
+const emit = defineEmits<{
+    send: [content: string]
+}>()
+
+const content = ref('')
+
+/**
+ * 提交非空消息，并在提交后清空输入框。
+ */
+function submitMessage(): void {
+    const normalizedContent = content.value.trim()
+
+    if (!normalizedContent || props.disabled) {
+        return
+    }
+
+    emit('send', normalizedContent)
+    content.value = ''
+}
+</script>
+
 <template>
     <footer class="chat-footer">
         <div class="composer">
             <textarea
+                v-model="content"
                 class="composer-input"
                 rows="2"
                 placeholder="输入你的问题，按 Enter 发送"
                 aria-label="消息内容"
+                :disabled="disabled"
+                @keydown.enter.exact.prevent="submitMessage"
             ></textarea>
 
-            <button class="send-button" type="button" aria-label="发送消息">
+            <button
+                class="send-button"
+                type="button"
+                aria-label="发送消息"
+                :disabled="disabled || !content.trim()"
+                @click="submitMessage"
+            >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="m4 4 17 8-17 8 3-8-3-8Z" />
                     <path d="M7 12h14" />
@@ -65,6 +102,10 @@
     color: var(--color-text-muted);
 }
 
+.composer-input:disabled {
+    cursor: not-allowed;
+}
+
 .send-button {
     display: grid;
     width: 40px;
@@ -85,6 +126,11 @@
     background: var(--color-accent-active);
 }
 
+.send-button:disabled {
+    background: var(--color-border-strong);
+    cursor: not-allowed;
+}
+
 .send-button svg {
     width: 18px;
     height: 18px;
@@ -94,5 +140,4 @@
     stroke-linejoin: round;
     stroke-width: 1.7;
 }
-
 </style>

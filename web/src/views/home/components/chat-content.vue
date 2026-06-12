@@ -1,30 +1,82 @@
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+
+import type { ChatMessage } from '@/api'
+
+const props = defineProps<{
+    messages: ChatMessage[]
+    isStreaming: boolean
+    errorMessage: string
+}>()
+
+const contentElement = ref<HTMLElement | null>(null)
+
+/**
+ * 将消息区域滚动到最新内容。
+ */
+function scrollToLatestMessage(): void {
+    const element = contentElement.value
+
+    if (element) {
+        element.scrollTop = element.scrollHeight
+    }
+}
+
+watch(
+    /** 跟踪新增消息与最后一条流式消息的内容变化。 */
+    () => [
+        props.messages.length,
+        props.messages.at(-1)?.content,
+    ],
+    scrollToLatestMessage,
+    { flush: 'post' },
+)
+</script>
+
 <template>
-    <div class="chat-content">
+    <div ref="contentElement" class="chat-content">
         <div class="message-list">
-            <div class="user-message-row box">
-                <div class="user-message box">用户消息</div>
-                <div class="avatar box">用户头像</div>
+            <div v-if="messages.length === 0" class="empty-state">
+                <div class="empty-title">开始一段对话</div>
+                <div class="empty-description">
+                    输入问题后，AI 回复会实时显示在这里。
+                </div>
             </div>
 
-            <div class="assistant-message-row box">
-                <div class="avatar box">AI 头像</div>
-                <div class="assistant-content">
-                    <div class="assistant-message box">AI 回复内容</div>
-                    <div class="reference-section box">
-                        <div class="section-title">引用来源</div>
-                        <div class="reference-card box">引用文档卡片</div>
+            <template
+                v-for="(message, index) in messages"
+                :key="index"
+            >
+                <div
+                    v-if="message.role === 'user'"
+                    class="user-message-row"
+                >
+                    <div class="user-message">{{ message.content }}</div>
+                    <div class="avatar">你</div>
+                </div>
+
+                <div v-else class="assistant-message-row">
+                    <div class="avatar">AI</div>
+                    <div class="assistant-message">
+                        <span v-if="message.content">{{ message.content }}</span>
+                        <span
+                            v-else-if="isStreaming && index === messages.length - 1"
+                            class="streaming-placeholder"
+                        >
+                            正在思考
+                        </span>
                     </div>
                 </div>
+            </template>
+
+            <div v-if="errorMessage" class="error-message">
+                {{ errorMessage }}
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-.box {
-    border: 1px solid var(--color-border);
-}
-
 .chat-content {
     min-height: 0;
     flex: 1;
@@ -42,18 +94,37 @@
     gap: 32px;
 }
 
+.empty-state {
+    padding: 80px 24px;
+    color: var(--color-text-secondary);
+    text-align: center;
+}
+
+.empty-title {
+    color: var(--color-text-primary);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.empty-description {
+    margin-top: 8px;
+    font-size: 13px;
+}
+
 .user-message-row {
     display: flex;
-    align-items: center;
+    max-width: 80%;
+    align-items: flex-start;
     align-self: flex-end;
     gap: 12px;
-    padding: 12px;
 }
 
 .user-message,
 .assistant-message {
-    min-width: 260px;
-    padding: 20px;
+    padding: 14px 16px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 .user-message {
@@ -62,37 +133,59 @@
 
 .avatar {
     display: flex;
-    width: 64px;
-    height: 64px;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
     align-items: center;
     justify-content: center;
+    color: var(--color-text-inverse);
+    background: var(--color-accent);
+    font-size: 12px;
+    font-weight: 700;
     text-align: center;
 }
 
 .assistant-message-row {
     display: flex;
+    max-width: 88%;
+    align-items: flex-start;
     gap: 12px;
-    padding: 12px;
 }
 
-.assistant-content {
-    display: flex;
+.assistant-message {
     flex: 1;
-    flex-direction: column;
-    gap: 12px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
 }
 
-.reference-section {
-    padding: 12px;
+.streaming-placeholder {
+    color: var(--color-text-muted);
 }
 
-.section-title {
-    margin-bottom: 12px;
+.streaming-placeholder::after {
+    content: "...";
+    display: inline-block;
+    width: 1.5em;
+    overflow: hidden;
+    vertical-align: bottom;
+    animation: streaming-dots 1.2s steps(4, end) infinite;
 }
 
-.reference-card {
-    min-height: 88px;
-    padding: 20px;
-    background: var(--color-surface-subtle);
+.error-message {
+    padding: 12px 16px;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    font-size: 13px;
+}
+
+@keyframes streaming-dots {
+    from {
+        width: 0;
+    }
+
+    to {
+        width: 1.5em;
+    }
 }
 </style>
